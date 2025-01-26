@@ -1,18 +1,13 @@
-mod poll;
-mod handlers;
-mod migrations;
-
 use std::env;
 use serenity::prelude::*;
 use dotenv::dotenv;
-use migrations::init_db;
-
-static DATABASE: &str = "polls.sqlite";
+use cron_poll_discord::migrations::init_db;
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    init_db().ok();
+    let database = env::var("DATABASE").expect("Expected DATABASE in the environment");
+    init_db(&database).ok();
 
     // Login with a bot token from the environment
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
@@ -25,7 +20,7 @@ async fn main() {
     // Create a new instance of the Client, logging in as a bot.
     let mut client =
         Client::builder(&token, intents)
-            .event_handler(crate::handlers::Handler).await
+            .event_handler(cron_poll_discord::handlers::Handler{db_name: database}).await
             .expect("Err creating client");
 
     // Start listening for events by starting a single shard

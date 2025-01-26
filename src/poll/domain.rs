@@ -23,6 +23,7 @@ pub struct PollAnswerCount {
 
 pub struct Poll {
     pub id: u64,
+    pub cron: String,
     pub question: String,
     pub answers: Vec<PollAnswerCount>,
 }
@@ -82,6 +83,7 @@ mod tests {
     fn test_add_vote() {
         let mut poll = Poll{
             id: 0,
+            cron: String::new(),
             question: String::new(),
             answers: vec![PollAnswerCount{id: 0, answer: String::new(), votes: 0}]
         };
@@ -95,6 +97,7 @@ mod tests {
     fn test_add_vote_no_answers() {
         let mut poll = Poll{
             id: 0,
+            cron: String::new(),
             question: String::new(),
             answers: vec![]
         };
@@ -106,6 +109,7 @@ mod tests {
     fn test_add_vote_unexistant_answer() {
         let mut poll = Poll{
             id: 0,
+            cron: String::new(),
             question: String::new(),
             answers: vec![PollAnswerCount{id: 0, answer: String::new(), votes: 0}]
         };
@@ -117,6 +121,7 @@ mod tests {
     fn test_add_vote_twice() {
         let mut poll = Poll{
             id: 0,
+            cron: String::new(),
             question: String::new(),
             answers: vec![
                 PollAnswerCount{id: 0, answer: String::new(), votes: 0},

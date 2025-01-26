@@ -77,6 +77,7 @@ impl PollRepository {
         let mut poll = stmt.query_row([id], |row| {
             Ok(Poll{
                 id: row.get(0)?,
+                cron: String::new(), // cron value is not saved in db
                 question: row.get(1)?,
                 answers: vec![]
             })

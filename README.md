@@ -11,5 +11,15 @@ DISCORD_TOKEN=<discord bot token>
 Run :
 
 ```
-cargo run .
+# bot
+cargo run --bin bot
+
+# daemon
+cargo run --bin daemon
+```
+
+Run tests :
+
+```
+cargo test
 ```

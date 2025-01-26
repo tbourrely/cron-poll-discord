@@ -1,0 +1,5 @@
+- cron: '* * * * *'
+  question: 'riwruhwr ?'
+  answers:
+  - fsf
+  - rwrwr

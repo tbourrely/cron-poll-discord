@@ -11,8 +11,8 @@ lazy_static! {
         Migrations::from_directory(&MIGRATIONS_DIR).unwrap();
 }
 
-pub fn init_db() -> Result<Connection, Box<dyn std::error::Error>> {
-    let mut conn = Connection::open(crate::DATABASE)?;
+pub fn init_db(path: &str) -> Result<Connection, Box<dyn std::error::Error>> {
+    let mut conn = Connection::open(path)?;
 
     // Update the database schema, atomically
     MIGRATIONS.to_latest(&mut conn)?;
