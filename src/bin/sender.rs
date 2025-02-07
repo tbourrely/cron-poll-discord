@@ -1,4 +1,4 @@
-use cron_poll_discord::poll::{parser, cron_filter};
+use cron_poll_discord::poll::cron_filter;
 use std::env;
 use std::time::Duration;
 use chrono::Local;
@@ -6,9 +6,9 @@ use serenity::prelude::*;
 use dotenv::dotenv;
 use serenity::async_trait;
 use serenity::builder::{CreateMessage, CreatePoll, CreatePollAnswer};
-use cron_poll_discord::poll::domain::{Poll, PollAnswerCount};
+use cron_poll_discord::poll::domain::{PollInstanceAnswer, PollInstance};
 use rusqlite::Connection;
-use cron_poll_discord::poll::repository::PollRepository;
+use cron_poll_discord::poll::repository::{PollRepository, PollInstanceRepository};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -17,15 +17,25 @@ struct Handler {
     database: String
 }
 
+fn to_createpollanswers(answers: &Vec<String>) -> Vec<CreatePollAnswer> {
+    let mut poll_answers: Vec<CreatePollAnswer> = vec![];
+    for a in answers {
+        poll_answers.push(CreatePollAnswer::new().text(a.clone()));
+    }
+
+    return poll_answers;
+}
+
 #[async_trait]
 impl EventHandler for Handler {
 
+
     async fn cache_ready(&self, ctx: Context, ids: Vec<serenity::all::GuildId>) {
-        println!("Daemon started");
+        println!("Sender started");
 
 
         if ids.len() > 1 {
-            println!("Too much guilds, can't process");
+            println!("Too much guilds, can't process"); // TODO: support multi guilds context
             return;
         }
 
@@ -41,54 +51,47 @@ impl EventHandler for Handler {
 
             tokio::spawn(async move {
                 loop {
+                    let poll_repository = PollRepository { conn: Connection::open(database.to_string()).unwrap() };
+                    let poll_instance_repository = PollInstanceRepository { conn: Connection::open(database.to_string()).unwrap(), poll_repository: PollRepository { conn: Connection::open(database.to_string()).unwrap() } };
+
+                    let found_polls = poll_repository.get_all().unwrap();
+
                     let now = Local::now();
-                    let polls = cron_filter::filter(parser::parse(), &now);
+                    let polls = cron_filter::filter(found_polls, &now);
                     println!("now : {:?}", now);
                     println!("number of polls to send : {:?}", polls.len());
 
                     for p in polls {
                         println!("{:?}", p);
 
-                        let mut answers: Vec<String> = vec![];
-                        for a in p.answers {
-                            answers.push(a.answer);
-                        }
-                        let mut poll_answers: Vec<CreatePollAnswer> = vec![];
-                        for answer in answers {
-                            poll_answers.push(CreatePollAnswer::new().text(answer));
-                        }
+                        let poll_answers = to_createpollanswers(&p.answers);
 
-                        let poll = CreatePoll::new()
-                            .question(p.question)
+                        let create_poll = CreatePoll::new()
+                            .question(p.question.clone())
                             .answers(poll_answers)
                             .duration(std::time::Duration::from_secs(60 * 60 * 24 * 7));
 
-                        let poll_msg = CreateMessage::new().poll(poll);
+                        let poll_msg = CreateMessage::new().poll(create_poll);
                         let sent_details = channel.send_message(&ctx, poll_msg).await.unwrap();
-
                         let sent_poll_details = sent_details.poll.unwrap();
-                        let question = sent_poll_details.question.text.unwrap();
 
-                        let mut answers: Vec<PollAnswerCount> = vec![];
+                        let mut answers: Vec<PollInstanceAnswer> = vec![];
                         for answer in sent_poll_details.answers {
-                            answers.push(PollAnswerCount {
-                                id: answer.answer_id.get(),
+                            answers.push(PollInstanceAnswer {
+                                discord_answer_id: answer.answer_id.get(),
                                 answer: answer.poll_media.text.unwrap(),
                                 votes: 0,
                             })
                         }
 
-                        let poll_to_save = Poll {
+                        let instance = PollInstance{
                             id: sent_details.id.get(),
-                            cron: String::new(),
-                            question,
+                            sent_at: sent_details.timestamp.unix_timestamp(),
                             answers,
+                            poll: p
                         };
 
-                        let conn = Connection::open(database.to_string()).unwrap();
-                        let repo = PollRepository { conn };
-
-                        repo.save(poll_to_save).unwrap();
+                        poll_instance_repository.save(instance).unwrap();
                     }
 
                     let _ = tokio::time::sleep(Duration::from_secs(1)).await;
