@@ -1,5 +1,4 @@
 use crate::poll::repository::PollRepository;
-
 use rusqlite::Connection;
 use serenity::async_trait;
 use serenity::model::event::{MessagePollVoteAddEvent, MessagePollVoteRemoveEvent};
@@ -17,7 +16,7 @@ impl EventHandler for Handler {
 
         let conn = Connection::open(self.db_name.as_str()).unwrap();
         let repo = PollRepository { conn };
-        let mut poll = match repo.find(msg.message_id.get()) {
+        let mut poll = match repo.find_by_discord_id(msg.message_id.get()) {
             Ok(poll) => poll,
             Err(error) => panic!("Could not load poll {:?}", error),
         };
@@ -34,7 +33,7 @@ impl EventHandler for Handler {
 
         let conn = Connection::open(self.db_name.as_str()).unwrap();
         let repo = PollRepository { conn };
-        let mut poll = match repo.find(msg.message_id.get()) {
+        let mut poll = match repo.find_by_discord_id(msg.message_id.get()) {
             Ok(poll) => poll,
             Err(error) => panic!("Could not load poll {:?}", error),
         };

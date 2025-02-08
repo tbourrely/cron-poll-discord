@@ -1,8 +1,15 @@
-CREATE TABLE polls(id INTEGER, question TEXT);
+CREATE TABLE polls(
+	id TEXT,
+	cron TEXT,
+	question TEXT,
+	discord_poll_id INTEGER,
+	sent INTEGER
+);
+
 CREATE TABLE poll_answers(
-	id INTEGER,
+	discord_answer_id INTEGER,
 	answer TEXT,
 	votes INTEGER,
-	poll_id INTEGER,
+	poll_id TEXT,
 	FOREIGN KEY(poll_id) REFERENCES polls(id)
 );

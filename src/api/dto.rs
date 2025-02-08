@@ -15,3 +15,5 @@ pub struct CreatePoll {
     pub question: String,
     pub answers: Vec<String>,
 }
+
+pub type UpdatePoll = CreatePoll;

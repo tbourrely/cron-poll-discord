@@ -6,11 +6,12 @@ use serenity::prelude::*;
 use dotenv::dotenv;
 use serenity::async_trait;
 use serenity::builder::{CreateMessage, CreatePoll, CreatePollAnswer};
-use cron_poll_discord::poll::domain::{Poll, PollAnswerCount};
+use cron_poll_discord::poll::domain::{Poll, PollAnswer};
 use rusqlite::Connection;
 use cron_poll_discord::poll::repository::PollRepository;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use uuid::Uuid;
 
 struct Handler {
     is_running: AtomicBool,
@@ -69,20 +70,22 @@ impl EventHandler for Handler {
                         let sent_poll_details = sent_details.poll.unwrap();
                         let question = sent_poll_details.question.text.unwrap();
 
-                        let mut answers: Vec<PollAnswerCount> = vec![];
+                        let mut answers: Vec<PollAnswer> = vec![];
                         for answer in sent_poll_details.answers {
-                            answers.push(PollAnswerCount {
-                                id: answer.answer_id.get(),
+                            answers.push(PollAnswer {
+                                discord_answer_id: answer.answer_id.get(),
                                 answer: answer.poll_media.text.unwrap(),
                                 votes: 0,
                             })
                         }
 
                         let poll_to_save = Poll {
-                            id: sent_details.id.get(),
+                            id: Uuid::new_v4(),
+                            discord_poll_id: sent_details.id.get(),
                             cron: String::new(),
                             question,
                             answers,
+                            sent: true
                         };
 
                         let conn = Connection::open(database.to_string()).unwrap();

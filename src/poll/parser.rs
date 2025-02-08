@@ -2,7 +2,8 @@ use std::io;
 use std::fs::{self, DirEntry};
 use std::path::Path;
 use serde::{Serialize, Deserialize};
-use crate::poll::domain::{Poll, PollAnswerCount};
+use crate::poll::domain::{Poll, PollAnswer};
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct PollDTO {
@@ -33,15 +34,17 @@ fn parse_file(entry: &DirEntry) -> Vec<Poll> {
     let mut result: Vec<Poll> = vec![];
 
     for p in parsed {
-        let mut answers: Vec<PollAnswerCount> = vec![];
+        let mut answers: Vec<PollAnswer> = vec![];
         for a in p.answers {
-            answers.push(PollAnswerCount{id: 0, answer: a, votes: 0}); // TODO: id = 0 ??
+            answers.push(PollAnswer{discord_answer_id: 0, answer: a, votes: 0}); // TODO: id = 0 ??
         }
         result.push(Poll{
-            id: 0,
+            id: Uuid::new_v4(), 
+            discord_poll_id: 0,
             cron: p.cron,
             question: p.question,
             answers,
+            sent: false,
         });
     }
 

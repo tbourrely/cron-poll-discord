@@ -2,9 +2,13 @@ use axum::{
     Json,
     http::StatusCode,
     extract::Path,
+    response::IntoResponse,
 };
+
 use crate::api::dto::{
-    CreatePoll, Poll,
+    CreatePoll,
+    Poll,
+    UpdatePoll,
 };
 
 use uuid::Uuid;
@@ -30,4 +34,17 @@ pub async fn get_poll(
         question: "question".to_string(),
         answers: vec![],
     })
+}
+
+pub async fn delete_poll(
+    Path(_id): Path<Uuid>
+) -> impl IntoResponse {
+    StatusCode::OK
+}
+
+pub async fn update_poll(
+    Path(_id): Path<Uuid>,
+    Json(_input): Json<UpdatePoll>
+) -> impl IntoResponse {
+    StatusCode::OK
 }
