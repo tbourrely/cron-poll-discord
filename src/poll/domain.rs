@@ -157,6 +157,7 @@ impl fmt::Debug for Poll {
             .field("discord_poll_id", &self.discord_poll_id)
             .field("question", &self.question)
             .field("answers", &self.answers)
+            .field("sent", &self.sent)
             .finish()
     }
 }

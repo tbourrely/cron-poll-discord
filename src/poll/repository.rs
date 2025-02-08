@@ -37,8 +37,8 @@ impl PollRepository {
 
     fn create_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
         self.conn.execute(
-            "INSERT INTO polls (id, discord_poll_id, question, sent) VALUES (?1, ?2)",
-            (p.id.to_string(), p.discord_poll_id, &p.question, p.sent)
+            "INSERT INTO polls (id, cron, question, discord_poll_id, sent) VALUES (?1, ?2, ?3, ?4, ?5)",
+            (p.id.to_string(), p.cron.clone(), p.question.clone(), p.discord_poll_id, p.sent)
         )?;
 
         Ok(())
@@ -135,5 +135,40 @@ impl PollRepository {
         }
 
         Ok(poll)
+    }
+
+    pub fn get_all(&self) -> Result<Vec<Poll>, Box<dyn Error>> {
+        let mut polls: Vec<Poll> = Vec::new();
+
+        let mut stmt = self.conn.prepare("SELECT * FROM polls")?;
+        let mut poll_rows = stmt.query([]).unwrap();
+
+        while let Some(row) = poll_rows.next()? {
+            let id: String = row.get(0)?;
+
+            let mut stmt = self.conn.prepare("SELECT * FROM poll_answers WHERE poll_id = ?1")?;
+            let mut answer_rows = stmt.query([id.clone()]).unwrap();
+            let mut answers: Vec<PollAnswer> = Vec::new();
+
+            while let Some(row) = answer_rows.next()? {
+                answers.push(PollAnswer{
+                    discord_answer_id: row.get(0)?,
+                    answer: row.get(1)?,
+                    votes: row.get(2)?,
+                });
+            }
+
+            let parsed_uuid = Uuid::parse_str(id.as_str())?;
+            polls.push(Poll{
+                id: parsed_uuid,
+                cron: row.get(1)?,
+                question: row.get(2)?,
+                discord_poll_id: row.get(3)?,
+                sent: row.get(4)?,
+                answers
+            });
+        }
+
+        Ok(polls)
     }
 }

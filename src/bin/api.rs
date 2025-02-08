@@ -1,12 +1,10 @@
 use std::env;
 use dotenv::dotenv;
 use cron_poll_discord::migrations::init_db;
-
 use axum::{
     routing::get,
     Router,
 };
-
 use cron_poll_discord::api::handlers::{
     create_poll,
     get_polls,
