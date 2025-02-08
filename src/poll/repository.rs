@@ -17,8 +17,21 @@ impl PollRepository {
         if !exists {
             self.create(&p)?;
         } else {
-            for answer in p.answers {
-                self.update_answer(&answer, p.id)?;
+            self.update_poll(&p)?;
+
+            let saved_answers = self.find_answers(p.id)?;
+
+            for answer in &p.answers {
+                match saved_answers.iter().find(|item| item.answer == answer.answer) {
+                    Some(_) => self.update_answer(&answer, p.id)?,
+                    None => self.create_answer(&answer, p.id)?,
+                };
+            }
+
+            for answer in &saved_answers {
+                if let None = p.answers.iter().find(|item| item.answer == answer.answer) {
+                    self.delete_answer(&answer, p.id)?;
+                }
             }
         }
 
@@ -60,6 +73,35 @@ impl PollRepository {
         }).unwrap_or(false);
 
         Ok(found)
+    }
+
+    fn find_answers(&self, id: Uuid) -> Result<Vec<PollAnswer>, Box<dyn Error>> {
+        let mut stmt = self.conn.prepare("SELECT * FROM poll_answers WHERE poll_id = ?1")?;
+        let mut rows = stmt.query([id.to_string()]).unwrap();
+        let mut answers: Vec<PollAnswer> = Vec::new();
+
+        while let Some(row) = rows.next()? {
+            answers.push(PollAnswer{
+                discord_answer_id: row.get(0)?,
+                answer: row.get(1)?,
+                votes: row.get(2)?,
+            })
+        }
+
+        Ok(answers)
+    }
+
+    fn update_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
+        self.conn.execute(
+            "UPDATE polls SET cron = ?1, question = ?2, sent = ?3 WHERE id = ?4",
+            (
+                p.cron.clone(),
+                p.question.clone(),
+                p.sent,
+                p.id.to_string(),
+            )
+        )?;
+        Ok(())
     }
 
     fn update_answer(&self, a: &PollAnswer, poll_id: Uuid) -> Result<(), Box<dyn Error>> {
@@ -170,5 +212,26 @@ impl PollRepository {
         }
 
         Ok(polls)
+    }
+
+    pub fn delete_poll(&mut self, id: Uuid) -> Result<(), Box<dyn Error>> {
+        let found = self.poll_exists(id)?;
+        if !found {
+            return Err("not found")?;
+        }
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM poll_answers WHERE poll_id = ?1", [id.to_string()])?;
+        tx.execute("DELETE FROM polls WHERE id = ?1", [id.to_string()])?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    fn delete_answer(&self, answer: &PollAnswer, id: Uuid) -> Result<(), Box<dyn Error>> {
+        self.conn.execute(
+            "DELETE FROM poll_answers WHERE poll_id = ?1 AND answer = ?2",
+            (id.to_string(), answer.answer.clone())
+        )?;
+
+        Ok(())
     }
 }

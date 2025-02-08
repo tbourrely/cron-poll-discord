@@ -90,24 +90,59 @@ pub async fn get_polls() -> Result<Json<Vec<Poll>>, StatusCode> {
 
 pub async fn get_poll(
     Path(id): Path<Uuid>
-) -> Json<Poll> {
-    Json(Poll{
-        id,
-        cron: "cron".to_string(),
-        question: "question".to_string(),
-        answers: vec![],
-    })
+) -> Result<Json<Poll>, StatusCode> {
+    let poll = match init_repo().find_by_id(id) {
+        Ok(p) => p,
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    let answers: Vec<String> = poll.answers.iter().map(|item| {
+        item.answer.clone()
+    }).collect();
+
+    Ok(Json(Poll{
+        id: poll.id,
+        cron: poll.cron,
+        question: poll.question,
+        answers,
+    }))
 }
 
 pub async fn delete_poll(
-    Path(_id): Path<Uuid>
+    Path(id): Path<Uuid>
 ) -> impl IntoResponse {
-    StatusCode::OK
+    match init_repo().delete_poll(id) {
+        Ok(_) => StatusCode::OK,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
 }
 
 pub async fn update_poll(
-    Path(_id): Path<Uuid>,
-    Json(_input): Json<UpdatePoll>
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdatePoll>
 ) -> impl IntoResponse {
-    StatusCode::OK
+    // TODO: input validation
+    println!("payload : {:?}", payload);
+    let mut answers: Vec<DomainPollAnswer> = vec![];
+    for answer in payload.answers {
+        answers.push(DomainPollAnswer{
+            discord_answer_id: 0,
+            votes: 0,
+            answer
+        })
+    }
+    let poll = DomainPoll{
+        id,
+        discord_poll_id: 0,
+        cron: payload.cron,
+        question: payload.question,
+        answers,
+        sent: false
+    };
+    println!("poll : {:?}", poll);
+
+    match init_repo().save(poll) {
+        Ok(_) => StatusCode::OK,
+        Err(e) =>  handle_error(e)
+    }
 }
