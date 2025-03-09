@@ -1,13 +1,14 @@
-run:
-	cargo run
+run-bot:
+	cargo watch -x run -- cargo run --bin bot
 
-run-watch:
-	cargo-watch -x run --ignore *.sqlite
+run-sender:
+	cargo watch -x run -- cargo run --bin sender
+
+run-api:
+	cargo watch -x run -- cargo run --bin api
 
 test:
 	cargo test
 
 delete-db:
 	rm -f polls.sqlite
-
-clean-run: delete-db run
