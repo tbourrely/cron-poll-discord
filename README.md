@@ -14,8 +14,11 @@ Run :
 # bot
 cargo run --bin bot
 
-# daemon
-cargo run --bin daemon
+# api
+cargo run --bin api
+
+# sender
+cargo run --bin sender
 ```
 
 Run tests :
