@@ -1,4 +1,5 @@
 use std::fmt;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub enum AnswersError {
@@ -15,20 +16,49 @@ impl fmt::Display for AnswersError {
     }
 }
 
-pub struct PollAnswerCount {
-    pub id: u64,
+pub struct PollInstanceAnswer {
     pub answer: String,
+    pub discord_answer_id: u64,
     pub votes: u64,
 }
 
-pub struct Poll {
+pub struct PollInstance {
     pub id: u64,
+    pub sent_at: i64,
+    pub answers: Vec<PollInstanceAnswer>,
+    pub poll: Poll,
+}
+
+pub struct Poll {
     pub cron: String,
+    pub id: Uuid,
     pub question: String,
-    pub answers: Vec<PollAnswerCount>,
+    pub answers: Vec<String>,
 }
 
 impl Poll {
+
+    pub fn new() -> Poll {
+        Poll{
+            cron: "".to_string(),
+            id: Uuid::new_v4(),
+            answers: vec![],
+            question: "".to_string(),
+        }
+    }
+}
+
+impl PollInstance {
+
+    pub fn new() -> PollInstance {
+        PollInstance{
+            id: 0,
+            sent_at: 0,
+            answers: vec![],
+            poll: Poll::new(),
+        }
+    }
+
     pub fn add_vote(&mut self, vote_id: u64) -> Result<(), AnswersError> {
         if self.answers.is_empty() {
             return Err(AnswersError::Empty);
@@ -36,7 +66,7 @@ impl Poll {
 
         let mut found = false;
         for answer in self.answers.iter_mut() {
-            if answer.id == vote_id {
+            if answer.discord_answer_id == vote_id {
                 answer.votes = answer.votes + 1;
                 found = true;
             }
@@ -56,7 +86,7 @@ impl Poll {
 
         let mut found = false;
         for answer in self.answers.iter_mut() {
-            if answer.id == vote_id {
+            if answer.discord_answer_id == vote_id {
                 if answer.votes - 1 > 0 {
                     answer.votes = answer.votes - 1;
                 } else {
@@ -81,13 +111,11 @@ mod tests {
 
     #[test]
     fn test_add_vote() {
-        let mut poll = Poll{
-            id: 0,
-            cron: String::new(),
-            question: String::new(),
-            answers: vec![PollAnswerCount{id: 0, answer: String::new(), votes: 0}]
-        };
+        let mut poll = PollInstance::new(); 
+        poll.answers = vec![PollInstanceAnswer{discord_answer_id: 0, answer: String::new(), votes: 0}];
+
         assert_eq!(0, poll.answers[0].votes);
+
         let result = poll.add_vote(0);
         assert_eq!(1, poll.answers[0].votes);
         assert_eq!(true, result.is_ok())
@@ -95,40 +123,29 @@ mod tests {
 
     #[test]
     fn test_add_vote_no_answers() {
-        let mut poll = Poll{
-            id: 0,
-            cron: String::new(),
-            question: String::new(),
-            answers: vec![]
-        };
+        let mut poll = PollInstance::new();
         let result = poll.add_vote(0);
         assert_eq!(true, result.is_err())
     }
 
     #[test]
     fn test_add_vote_unexistant_answer() {
-        let mut poll = Poll{
-            id: 0,
-            cron: String::new(),
-            question: String::new(),
-            answers: vec![PollAnswerCount{id: 0, answer: String::new(), votes: 0}]
-        };
+        let mut poll = PollInstance::new();
+        poll.answers = vec![PollInstanceAnswer{discord_answer_id: 0, answer: String::new(), votes: 0}];
+
         let result = poll.add_vote(2);
         assert_eq!(true, result.is_err())
     }
 
     #[test]
     fn test_add_vote_twice() {
-        let mut poll = Poll{
-            id: 0,
-            cron: String::new(),
-            question: String::new(),
-            answers: vec![
-                PollAnswerCount{id: 0, answer: String::new(), votes: 0},
-                PollAnswerCount{id: 1, answer: String::new(), votes: 0},
-                PollAnswerCount{id: 2, answer: String::new(), votes: 0},
-            ]
-        };
+        let mut poll = PollInstance::new();
+        poll.answers = vec![
+            PollInstanceAnswer{discord_answer_id: 0, answer: String::new(), votes: 0},
+            PollInstanceAnswer{discord_answer_id: 1, answer: String::new(), votes: 0},
+            PollInstanceAnswer{discord_answer_id: 2, answer: String::new(), votes: 0},
+
+        ];
         let result = poll.add_vote(2);
         assert_eq!(false, result.is_err());
         assert_eq!(1, poll.answers[2].votes);
@@ -143,18 +160,29 @@ impl fmt::Debug for Poll {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Poll")
             .field("id", &self.id)
+            .field("cron", &self.cron)
             .field("question", &self.question)
-            .field("answers", &self.answers)
             .finish()
     }
 }
 
-impl fmt::Debug for PollAnswerCount {
+impl fmt::Debug for PollInstanceAnswer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PollAnswerCount")
-            .field("id", &self.id)
+        f.debug_struct("PollInstanceAnswer")
+            .field("discord_answer_id", &self.discord_answer_id)
             .field("answer", &self.answer)
             .field("votes", &self.votes)
+            .finish()
+    }
+}
+
+impl fmt::Debug for PollInstance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PollInstance")
+            .field("id", &self.id)
+            .field("sent_at", &self.sent_at)
+            .field("answers", &self.answers)
+            .field("poll", &self.poll)
             .finish()
     }
 }
