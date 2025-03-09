@@ -6,23 +6,34 @@ Create *.env* file with :
 
 ```
 DISCORD_TOKEN=<discord bot token>
+DATABASE=<sqlite filename>
 ```
 
 Run :
 
 ```
 # bot
-cargo run --bin bot
+make run-bot
 
 # api
-cargo run --bin api
+make run-api
 
 # sender
-cargo run --bin sender
+make run-sender
 ```
 
 Run tests :
 
 ```
-cargo test
+# unit tests
+make test
+```
+
+Run integration tests:
+
+> You will need [venom](https://github.com/ovh/venom)
+
+```
+# integration tests
+make integration-tests
 ```

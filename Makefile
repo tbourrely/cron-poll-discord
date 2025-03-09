@@ -12,3 +12,7 @@ test:
 
 delete-db:
 	rm -f polls.sqlite
+
+integration-tests:
+	rm venom.*
+	venom run tests/
