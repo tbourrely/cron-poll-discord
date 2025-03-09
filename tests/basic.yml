@@ -1,0 +1,98 @@
+name: basic tests
+description: Basic api tests
+vars:
+  api: http://localhost:3000
+
+testcases:
+- name: delete db file
+  steps:
+  - type: exec
+    script: rm -f ../polls.sqlite & sleep 1  # sleep to let the api time to boot and setup db
+
+- name: GET polls should be empty
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldBeEmpty
+
+- name: POST poll
+  steps:
+  - type: http
+    method: POST
+    body: |
+      {
+        "cron": "* * * * *",
+        "question": "test question",
+        "answers": [
+            "one",
+            "two"
+        ]
+      }
+    headers:
+      Content-Type: application/json
+    url: "{{.api}}/polls"
+    assertions:
+    - result.statuscode ShouldEqual 201
+    - result.bodyjson ShouldBeEmpty
+
+- name: GET polls should not be empty
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldNotBeEmpty
+    - result.bodyjson.bodyjson0.question ShouldEqual "test question"
+    vars:
+      id:
+        from: result.bodyjson.bodyjson0.id
+
+- name: PUT poll
+  steps:
+  - type: http
+    method: PUT
+    body: |
+      {
+        "cron": "* * * * *",
+        "question": "updated question",
+        "answers": [
+            "one",
+            "two"
+        ]
+      }
+    headers:
+      Content-Type: application/json
+    url: "{{.api}}/polls/{{.GET-polls-should-not-be-empty.id}}"
+    assertions:
+    - result.statuscode ShouldEqual 200
+
+- name: GET polls should be updated
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldNotBeEmpty
+    - result.bodyjson.bodyjson0.question ShouldEqual "updated question"
+
+- name: DELETE poll
+  steps:
+  - type: http
+    method: DELETE
+    url: "{{.api}}/polls/{{.GET-polls-should-not-be-empty.id}}"
+    assertions:
+    - result.statuscode ShouldEqual 200
+
+- name: GET polls should be empty
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldBeEmpty
