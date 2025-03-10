@@ -1,0 +1,37 @@
+services:
+  api:
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DATABASE: /${DATABASE}
+    volumes:
+      - ${DATABASE}:/${DATABASE}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    ports:
+      - 3000:3000
+  bot:
+    depends_on:
+      - api
+    volumes:
+      - ${DATABASE}:/${DATABASE}
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DATABASE: /${DATABASE}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: bot
+  sender:
+    depends_on:
+      - api
+    volumes:
+      - ${DATABASE}:/${DATABASE}
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DATABASE: /${DATABASE}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: sender
