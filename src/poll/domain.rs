@@ -34,6 +34,7 @@ pub struct Poll {
     pub id: Uuid,
     pub question: String,
     pub answers: Vec<String>,
+    pub multiselect: bool,
 }
 
 impl Poll {
@@ -44,6 +45,7 @@ impl Poll {
             id: Uuid::new_v4(),
             answers: vec![],
             question: "".to_string(),
+            multiselect: false,
         }
     }
 }
@@ -162,6 +164,7 @@ impl fmt::Debug for Poll {
             .field("id", &self.id)
             .field("cron", &self.cron)
             .field("question", &self.question)
+            .field("multiselect", &self.multiselect)
             .finish()
     }
 }

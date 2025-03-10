@@ -1,9 +1,8 @@
-PRAGMA foreign_keys = ON;
-
 CREATE TABLE polls(
 	id TEXT PRIMARY KEY,
 	cron TEXT,
-	question TEXT
+	question TEXT,
+	multiselect INTEGER
 );
 
 CREATE TABLE answers(
@@ -21,7 +20,8 @@ CREATE TABLE poll_instances(
 );
 
 CREATE TABLE poll_instance_answers(
-	id INTEGER PRIMARY KEY,
+	internal_id INTEGER PRIMARY KEY,
+	id INTEGER,
 	votes INTEGER,
 	answer TEXT,
 	instance_id INTEGER,

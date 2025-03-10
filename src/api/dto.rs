@@ -7,6 +7,7 @@ pub struct Poll {
     pub cron: String,
     pub question: String,
     pub answers: Vec<String>,
+    pub multiselect: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -14,6 +15,7 @@ pub struct CreatePoll {
     pub cron: String,
     pub question: String,
     pub answers: Vec<String>,
+    pub multiselect: bool,
 }
 
 pub type UpdatePoll = CreatePoll;

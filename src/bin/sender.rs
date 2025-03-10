@@ -66,11 +66,15 @@ impl EventHandler for Handler {
 
                         let poll_answers = to_createpollanswers(&p.answers);
 
-                        let create_poll = CreatePoll::new()
+                        let mut create_poll = CreatePoll::new()
                             .question(p.question.clone())
                             .answers(poll_answers)
                             .duration(std::time::Duration::from_secs(60 * 60 * 24 * 7));
-
+                        
+                        if p.multiselect {
+                            create_poll = create_poll.allow_multiselect();
+                        }
+                    
                         let poll_msg = CreateMessage::new().poll(create_poll);
                         let sent_details = channel.send_message(&ctx, poll_msg).await.unwrap();
                         let sent_poll_details = sent_details.poll.unwrap();
