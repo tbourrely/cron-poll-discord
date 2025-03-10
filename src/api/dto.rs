@@ -8,6 +8,8 @@ pub struct Poll {
     pub question: String,
     pub answers: Vec<String>,
     pub multiselect: bool,
+    pub guild: String,
+    pub channel: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -16,6 +18,8 @@ pub struct CreatePoll {
     pub question: String,
     pub answers: Vec<String>,
     pub multiselect: bool,
+    pub guild: String,
+    pub channel: String,
 }
 
 pub type UpdatePoll = CreatePoll;

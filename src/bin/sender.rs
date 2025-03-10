@@ -7,8 +7,9 @@ use dotenv::dotenv;
 use serenity::async_trait;
 use serenity::builder::{CreateMessage, CreatePoll, CreatePollAnswer};
 use cron_poll_discord::poll::domain::{PollInstanceAnswer, PollInstance};
-use rusqlite::Connection;
 use cron_poll_discord::poll::repository::{PollRepository, PollInstanceRepository};
+use cron_poll_discord::discord::{list_guilds, find_guild_channel};
+use rusqlite::Connection;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -33,18 +34,8 @@ impl EventHandler for Handler {
     async fn cache_ready(&self, ctx: Context, ids: Vec<serenity::all::GuildId>) {
         println!("Sender started");
 
-
-        if ids.len() > 1 {
-            println!("Too much guilds, can't process"); // TODO: support multi guilds context
-            return;
-        }
-
-        let ctx_clone = ctx.clone();
-        let user_id = ctx_clone.cache.clone().current_user().id;
-        let guild_ref = ctx_clone.cache.clone().guild(ids[0]).unwrap().clone();
-        let channel_ref = guild_ref.clone().default_channel(user_id).unwrap().clone();
-        let channel = Arc::new(channel_ref);
-        let ctx = Arc::new(ctx_clone);
+        let guilds = list_guilds(ctx.clone(), ids.clone());
+        let ctx = Arc::new(ctx.clone());
         let database = Arc::new(self.database.clone());
 
         if !self.is_running.load(Ordering::Relaxed) {
@@ -63,6 +54,20 @@ impl EventHandler for Handler {
 
                     for p in polls {
                         println!("{:?}", p);
+
+                        let channels = find_guild_channel(guilds.clone(), p.guild.clone(), p.channel.clone());
+
+                        if channels.len() == 0 {
+                            eprintln!("No channel found for: guild {:?} - channel {:?}", p.guild.clone(), p.channel.clone());
+                            continue;
+                        }
+
+                        if channels.len() > 1 {
+                            eprintln!("Multiple channels found for: guild {:?} - channel {:?}", p.guild.clone(), p.channel.clone());
+                            continue;
+                        }
+
+                        let channel = channels[0].clone();
 
                         let poll_answers = to_createpollanswers(&p.answers);
 

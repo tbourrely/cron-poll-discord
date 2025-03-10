@@ -16,12 +16,14 @@ impl fmt::Display for AnswersError {
     }
 }
 
+#[derive(Debug)]
 pub struct PollInstanceAnswer {
     pub answer: String,
     pub discord_answer_id: u64,
     pub votes: u64,
 }
 
+#[derive(Debug)]
 pub struct PollInstance {
     pub id: u64,
     pub sent_at: i64,
@@ -29,12 +31,15 @@ pub struct PollInstance {
     pub poll: Poll,
 }
 
+#[derive(Debug)]
 pub struct Poll {
     pub cron: String,
     pub id: Uuid,
     pub question: String,
     pub answers: Vec<String>,
     pub multiselect: bool,
+    pub guild: String,
+    pub channel: String,
 }
 
 impl Poll {
@@ -46,6 +51,8 @@ impl Poll {
             answers: vec![],
             question: "".to_string(),
             multiselect: false,
+            guild: "".to_string(),
+            channel: "".to_string(),
         }
     }
 
@@ -71,6 +78,16 @@ impl Poll {
 
     pub fn multiselect(mut self, multiselect: bool) -> Self {
         self.multiselect = multiselect;
+        return self;
+    }
+
+    pub fn guild(mut self, guild: String) -> Self {
+        self.guild = guild;
+        return self;
+    }
+
+    pub fn channel(mut self, channel: String) -> Self {
+        self.channel = channel;
         return self;
     }
 }
@@ -180,37 +197,5 @@ mod tests {
         let result = poll.add_vote(0);
         assert_eq!(false, result.is_err());
         assert_eq!(1, poll.answers[0].votes);
-    }
-}
-
-impl fmt::Debug for Poll {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Poll")
-            .field("id", &self.id)
-            .field("cron", &self.cron)
-            .field("question", &self.question)
-            .field("multiselect", &self.multiselect)
-            .finish()
-    }
-}
-
-impl fmt::Debug for PollInstanceAnswer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PollInstanceAnswer")
-            .field("discord_answer_id", &self.discord_answer_id)
-            .field("answer", &self.answer)
-            .field("votes", &self.votes)
-            .finish()
-    }
-}
-
-impl fmt::Debug for PollInstance {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PollInstance")
-            .field("id", &self.id)
-            .field("sent_at", &self.sent_at)
-            .field("answers", &self.answers)
-            .field("poll", &self.poll)
-            .finish()
     }
 }

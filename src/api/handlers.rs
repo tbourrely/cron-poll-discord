@@ -42,7 +42,9 @@ pub async fn create_poll(
         .cron(payload.cron)
         .question(payload.question)
         .answers(payload.answers)
-        .multiselect(payload.multiselect);
+        .multiselect(payload.multiselect)
+        .guild(payload.guild)
+        .channel(payload.channel);
 
     println!("poll : {:?}", poll);
     let repo = init_repo();
@@ -71,6 +73,8 @@ pub async fn get_polls() -> Result<Json<Vec<Poll>>, StatusCode> {
             question: p.question,
             answers: p.answers,
             multiselect: p.multiselect,
+            guild: p.guild,
+            channel: p.channel,
         });
     }
     
@@ -91,6 +95,8 @@ pub async fn get_poll(
         question: poll.question,
         answers: poll.answers,
         multiselect: poll.multiselect,
+        guild: poll.guild,
+        channel: poll.channel,
     }))
 }
 
@@ -115,7 +121,9 @@ pub async fn update_poll(
         .cron(payload.cron)
         .question(payload.question)
         .answers(payload.answers)
-        .multiselect(payload.multiselect);
+        .multiselect(payload.multiselect)
+        .guild(payload.guild)
+        .channel(payload.channel);
 
     println!("poll : {:?}", poll);
 
