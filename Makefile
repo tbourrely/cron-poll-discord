@@ -15,4 +15,4 @@ delete-db:
 
 integration-tests:
 	rm -f venom.*
-	venom run tests/
+	venom run venom/
