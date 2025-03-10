@@ -21,18 +21,11 @@ pub fn filter<Tz: TimeZone>(polls: Vec<Poll>, datetime: &DateTime<Tz>) -> Vec<Po
 mod tests {
     use super::*;
     use chrono::DateTime;
-    use uuid::Uuid;
 
     #[test]
     fn test_filter() {
         let polls: Vec<Poll> = vec![
-            Poll{
-                id: Uuid::new_v4(),
-                cron: String::from("* * * * *"),
-                question: String::new(),
-                answers: vec![],
-                multiselect: false,
-            }
+            Poll::new().cron(String::from("* * * * *")),
         ];
 
         let date_str = "2020-04-12T22:10:00+02:00";
@@ -44,13 +37,7 @@ mod tests {
     #[test]
     fn test_filter_strip_ns() {
         let polls: Vec<Poll> = vec![
-            Poll{
-                id: Uuid::new_v4(),
-                cron: String::from("* * * * *"),
-                question: String::new(),
-                answers: vec![],
-                multiselect: false,
-            }
+            Poll::new().cron(String::from("* * * * *")),
         ];
 
         let date_str = "2025-01-25T23:18:00.383550841+01:00";
@@ -62,13 +49,7 @@ mod tests {
     #[test]
     fn test_filter_no_match() {
         let polls: Vec<Poll> = vec![
-            Poll{
-                id: Uuid::new_v4(),
-                cron: String::from("* * * * *"),
-                question: String::new(),
-                answers: vec![],
-                multiselect: false,
-            }
+            Poll::new().cron(String::from("* * * * *")),
         ];
 
 

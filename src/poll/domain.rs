@@ -48,6 +48,31 @@ impl Poll {
             multiselect: false,
         }
     }
+
+    pub fn cron(mut self, cron: String) -> Self {
+        self.cron = cron;
+        return self;
+    }
+
+    pub fn id(mut self, id: Uuid) -> Self {
+        self.id = id;
+        return self;
+    }
+
+    pub fn question(mut self, question: String) -> Self {
+        self.question = question;
+        return self;
+    }
+
+    pub fn answers(mut self, answers: Vec<String>) -> Self {
+        self.answers = answers;
+        return self;
+    }
+
+    pub fn multiselect(mut self, multiselect: bool) -> Self {
+        self.multiselect = multiselect;
+        return self;
+    }
 }
 
 impl PollInstance {

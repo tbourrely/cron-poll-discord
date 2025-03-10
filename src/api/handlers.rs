@@ -38,11 +38,11 @@ pub async fn create_poll(
     // TODO: input validation
     println!("payload : {:?}", payload);
 
-    let mut poll = DomainPoll::new();
-    poll.cron = payload.cron;
-    poll.question = payload.question;
-    poll.answers = payload.answers;
-    poll.multiselect = payload.multiselect;
+    let poll = DomainPoll::new()
+        .cron(payload.cron)
+        .question(payload.question)
+        .answers(payload.answers)
+        .multiselect(payload.multiselect);
 
     println!("poll : {:?}", poll);
     let repo = init_repo();
@@ -110,11 +110,12 @@ pub async fn update_poll(
     // TODO: input validation
     println!("payload : {:?}", payload);
 
-    let mut poll = DomainPoll::new();
-    poll.id = id;
-    poll.cron = payload.cron;
-    poll.question = payload.question;
-    poll.answers = payload.answers;
+    let poll = DomainPoll::new()
+        .id(id)
+        .cron(payload.cron)
+        .question(payload.question)
+        .answers(payload.answers)
+        .multiselect(payload.multiselect);
 
     println!("poll : {:?}", poll);
 
