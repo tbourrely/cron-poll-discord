@@ -58,8 +58,8 @@ impl PollRepository {
 
     fn create_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
         self.conn.execute(
-            "INSERT INTO polls (id, cron, question) VALUES (?1, ?2, ?3)",
-            (p.id.to_string(), p.cron.clone(), p.question.clone())
+            "INSERT INTO polls (id, cron, question, multiselect) VALUES (?1, ?2, ?3, ?4)",
+            (p.id.to_string(), p.cron.clone(), p.question.clone(), p.multiselect)
         )?;
 
         Ok(())
@@ -101,10 +101,11 @@ impl PollRepository {
 
     fn update_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
         self.conn.execute(
-            "UPDATE polls SET cron = ?1, question = ?2 WHERE id = ?3",
+            "UPDATE polls SET cron = ?1, question = ?2, multiselect = ?3 WHERE id = ?4",
             (
                 p.cron.clone(),
                 p.question.clone(),
+                p.multiselect,
                 p.id.to_string(),
             )
         )?;
@@ -122,6 +123,7 @@ impl PollRepository {
                 id: parsed_id,
                 cron: row.get(1)?,
                 question: row.get(2)?,
+                multiselect: row.get(3)?,
                 answers: vec![],
             })
         }).unwrap();
@@ -146,6 +148,7 @@ impl PollRepository {
                 id: parsed_uuid,
                 cron: row.get(1)?,
                 question: row.get(2)?,
+                multiselect: row.get(3)?,
                 answers,
             });
         }
@@ -250,8 +253,8 @@ impl PollInstanceRepository {
     fn update_votes(&self, i: &PollInstance) -> Result<(), Box<dyn Error>> {
         for answer in &i.answers {
             self.conn.execute(
-                "UPDATE poll_instance_answers SET votes = ?1 WHERE id = ?2",
-                (answer.votes, answer.discord_answer_id)
+                "UPDATE poll_instance_answers SET votes = ?1 WHERE id = ?2 AND instance_id = ?3",
+                (answer.votes, answer.discord_answer_id, i.id)
             )?;
         }
 
@@ -259,7 +262,7 @@ impl PollInstanceRepository {
     }
 
     fn find_answers(&self, id: u64) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
-        let mut stmt = self.conn.prepare("SELECT * FROM poll_instance_answers WHERE instance_id = ?1")?;
+        let mut stmt = self.conn.prepare("SELECT id, votes, answer FROM poll_instance_answers WHERE instance_id = ?1")?;
         let mut rows = stmt.query([id]).unwrap();
         let mut answers: Vec<PollInstanceAnswer> = Vec::new();
 

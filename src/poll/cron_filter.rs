@@ -31,6 +31,7 @@ mod tests {
                 cron: String::from("* * * * *"),
                 question: String::new(),
                 answers: vec![],
+                multiselect: false,
             }
         ];
 
@@ -48,6 +49,7 @@ mod tests {
                 cron: String::from("* * * * *"),
                 question: String::new(),
                 answers: vec![],
+                multiselect: false,
             }
         ];
 
@@ -65,6 +67,7 @@ mod tests {
                 cron: String::from("* * * * *"),
                 question: String::new(),
                 answers: vec![],
+                multiselect: false,
             }
         ];
 

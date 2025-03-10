@@ -42,6 +42,7 @@ pub async fn create_poll(
     poll.cron = payload.cron;
     poll.question = payload.question;
     poll.answers = payload.answers;
+    poll.multiselect = payload.multiselect;
 
     println!("poll : {:?}", poll);
     let repo = init_repo();
@@ -69,6 +70,7 @@ pub async fn get_polls() -> Result<Json<Vec<Poll>>, StatusCode> {
             cron: p.cron,
             question: p.question,
             answers: p.answers,
+            multiselect: p.multiselect,
         });
     }
     
@@ -88,6 +90,7 @@ pub async fn get_poll(
         cron: poll.cron,
         question: poll.question,
         answers: poll.answers,
+        multiselect: poll.multiselect,
     }))
 }
 

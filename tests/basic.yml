@@ -4,10 +4,16 @@ vars:
   api: http://localhost:3000
 
 testcases:
-- name: delete db file
+- name: Clean db
   steps:
-  - type: exec
-    script: rm -f ../polls.sqlite & sleep 1  # sleep to let the api time to boot and setup db
+    - type: sql
+      driver: sqlite
+      dsn: polls.sqlite
+      commands:
+        - "DELETE FROM polls"
+        - "DELETE FROM answers"
+        - "DELETE FROM poll_instances"
+        - "DELETE FROM poll_instance_answers"
 
 - name: GET polls should be empty
   steps:
@@ -27,9 +33,10 @@ testcases:
         "cron": "* * * * *",
         "question": "test question",
         "answers": [
-            "one",
-            "two"
-        ]
+        "one",
+        "two"
+        ],
+        "multiselect": false
       }
     headers:
       Content-Type: application/json
@@ -62,7 +69,8 @@ testcases:
         "answers": [
             "one",
             "two"
-        ]
+        ],
+        "multiselect": false
       }
     headers:
       Content-Type: application/json
