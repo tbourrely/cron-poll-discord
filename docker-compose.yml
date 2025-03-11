@@ -1,5 +1,6 @@
 services:
   api:
+    restart: always
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DATABASE: /${DATABASE}
@@ -12,6 +13,7 @@ services:
     ports:
       - 3000:3000
   bot:
+    restart: always
     depends_on:
       - api
     volumes:
@@ -24,6 +26,7 @@ services:
       dockerfile: Dockerfile
       target: bot
   sender:
+    restart: always
     depends_on:
       - api
     volumes:
