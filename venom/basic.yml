@@ -36,7 +36,9 @@ testcases:
         "one",
         "two"
         ],
-        "multiselect": false
+        "multiselect": false,
+        "guild": "test",
+        "channel": "test"
       }
     headers:
       Content-Type: application/json
@@ -70,7 +72,9 @@ testcases:
             "one",
             "two"
         ],
-        "multiselect": false
+        "multiselect": false,
+        "guild": "test",
+        "channel": "test"
       }
     headers:
       Content-Type: application/json

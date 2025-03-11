@@ -2,7 +2,9 @@ CREATE TABLE polls(
 	id TEXT PRIMARY KEY,
 	cron TEXT,
 	question TEXT,
-	multiselect INTEGER
+	multiselect INTEGER,
+	guild TEXT,
+	channel TEXT
 );
 
 CREATE TABLE answers(
