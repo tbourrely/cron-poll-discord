@@ -4,7 +4,8 @@ CREATE TABLE polls(
 	question TEXT,
 	multiselect INTEGER,
 	guild TEXT,
-	channel TEXT
+	channel TEXT,
+	duration INT -- in seconds
 );
 
 CREATE TABLE answers(

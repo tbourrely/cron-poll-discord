@@ -40,6 +40,7 @@ pub struct Poll {
     pub multiselect: bool,
     pub guild: String,
     pub channel: String,
+    pub duration: u32,
 }
 
 impl Poll {
@@ -53,6 +54,7 @@ impl Poll {
             multiselect: false,
             guild: "".to_string(),
             channel: "".to_string(),
+            duration: 0,
         }
     }
 
@@ -88,6 +90,11 @@ impl Poll {
 
     pub fn channel(mut self, channel: String) -> Self {
         self.channel = channel;
+        return self;
+    }
+
+    pub fn duration(mut self, duration: u32) -> Self {
+        self.duration = duration;
         return self;
     }
 }
