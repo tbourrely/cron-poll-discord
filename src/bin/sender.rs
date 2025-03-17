@@ -74,7 +74,7 @@ impl EventHandler for Handler {
                         let mut create_poll = CreatePoll::new()
                             .question(p.question.clone())
                             .answers(poll_answers)
-                            .duration(std::time::Duration::from_secs(60 * 60 * 24 * 7));
+                            .duration(Duration::from_secs(p.duration.into()));
                         
                         if p.multiselect {
                             create_poll = create_poll.allow_multiselect();

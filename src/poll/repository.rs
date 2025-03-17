@@ -58,8 +58,8 @@ impl PollRepository {
 
     fn create_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
         self.conn.execute(
-            "INSERT INTO polls (id, cron, question, multiselect, guild, channel) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            (p.id.to_string(), p.cron.clone(), p.question.clone(), p.multiselect, p.guild.clone(), p.channel.clone())
+            "INSERT INTO polls (id, cron, question, multiselect, guild, channel, duration) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            (p.id.to_string(), p.cron.clone(), p.question.clone(), p.multiselect, p.guild.clone(), p.channel.clone(), p.duration)
         )?;
 
         Ok(())
@@ -101,13 +101,14 @@ impl PollRepository {
 
     fn update_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
         self.conn.execute(
-            "UPDATE polls SET cron = ?1, question = ?2, multiselect = ?3, guild = ?4, channel = ?5 WHERE id = ?6",
+            "UPDATE polls SET cron = ?1, question = ?2, multiselect = ?3, guild = ?4, channel = ?5, duration = ?6 WHERE id = ?7",
             (
                 p.cron.clone(),
                 p.question.clone(),
                 p.multiselect,
                 p.guild.clone(),
                 p.channel.clone(),
+                p.duration,
                 p.id.to_string(),
             )
         )?;
@@ -129,6 +130,7 @@ impl PollRepository {
                 guild: row.get(4)?,
                 channel: row.get(5)?,
                 answers: vec![],
+                duration: row.get(6)?,
             })
         }).unwrap();
 
@@ -156,6 +158,7 @@ impl PollRepository {
                 guild: row.get(4)?,
                 channel: row.get(5)?,
                 answers,
+                duration: row.get(6)?,
             });
         }
 
