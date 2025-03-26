@@ -6,7 +6,7 @@ Create *.env* file with :
 
 ```
 DISCORD_TOKEN=<discord bot token>
-DATABASE=<sqlite filename>
+DATABASE_URL=<sqlite filename>
 ```
 
 Run :

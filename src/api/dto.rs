@@ -10,7 +10,7 @@ pub struct Poll {
     pub multiselect: bool,
     pub guild: String,
     pub channel: String,
-    pub duration: u32,
+    pub duration: i32,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -21,7 +21,7 @@ pub struct CreatePoll {
     pub multiselect: bool,
     pub guild: String,
     pub channel: String,
-    pub duration: u32,
+    pub duration: i32,
 }
 
 pub type UpdatePoll = CreatePoll;

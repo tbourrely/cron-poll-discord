@@ -7,8 +7,8 @@ testcases:
 - name: Clean db
   steps:
     - type: sql
-      driver: sqlite
-      dsn: polls.sqlite
+      driver: postgres
+      dsn: postgres://postgres:postgres@localhost/polls?sslmode=disable
       commands:
         - "DELETE FROM polls"
         - "DELETE FROM answers"

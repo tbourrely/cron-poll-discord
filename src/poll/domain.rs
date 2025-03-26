@@ -8,10 +8,10 @@ pub enum AnswersError {
 }
 
 impl fmt::Display for AnswersError {
-     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { 
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => write!(f, "empty answers"),
-            Self::NotFound => write!(f, "answer not found")
+            Self::NotFound => write!(f, "answer not found"),
         }
     }
 }
@@ -19,13 +19,13 @@ impl fmt::Display for AnswersError {
 #[derive(Debug)]
 pub struct PollInstanceAnswer {
     pub answer: String,
-    pub discord_answer_id: u64,
-    pub votes: u64,
+    pub discord_answer_id: i64,
+    pub votes: i32,
 }
 
 #[derive(Debug)]
 pub struct PollInstance {
-    pub id: u64,
+    pub id: i64,
     pub sent_at: i64,
     pub answers: Vec<PollInstanceAnswer>,
     pub poll: Poll,
@@ -40,13 +40,12 @@ pub struct Poll {
     pub multiselect: bool,
     pub guild: String,
     pub channel: String,
-    pub duration: u32,
+    pub duration: i32,
 }
 
 impl Poll {
-
     pub fn new() -> Poll {
-        Poll{
+        Poll {
             cron: "".to_string(),
             id: Uuid::new_v4(),
             answers: vec![],
@@ -93,16 +92,15 @@ impl Poll {
         return self;
     }
 
-    pub fn duration(mut self, duration: u32) -> Self {
+    pub fn duration(mut self, duration: i32) -> Self {
         self.duration = duration;
         return self;
     }
 }
 
 impl PollInstance {
-
     pub fn new() -> PollInstance {
-        PollInstance{
+        PollInstance {
             id: 0,
             sent_at: 0,
             answers: vec![],
@@ -110,7 +108,7 @@ impl PollInstance {
         }
     }
 
-    pub fn add_vote(&mut self, vote_id: u64) -> Result<(), AnswersError> {
+    pub fn add_vote(&mut self, vote_id: i64) -> Result<(), AnswersError> {
         if self.answers.is_empty() {
             return Err(AnswersError::Empty);
         }
@@ -130,7 +128,7 @@ impl PollInstance {
         Ok(())
     }
 
-    pub fn remove_vote(&mut self, vote_id: u64) -> Result<(), AnswersError> {
+    pub fn remove_vote(&mut self, vote_id: i64) -> Result<(), AnswersError> {
         if self.answers.is_empty() {
             return Err(AnswersError::Empty);
         }
@@ -162,8 +160,12 @@ mod tests {
 
     #[test]
     fn test_add_vote() {
-        let mut poll = PollInstance::new(); 
-        poll.answers = vec![PollInstanceAnswer{discord_answer_id: 0, answer: String::new(), votes: 0}];
+        let mut poll = PollInstance::new();
+        poll.answers = vec![PollInstanceAnswer {
+            discord_answer_id: 0,
+            answer: String::new(),
+            votes: 0,
+        }];
 
         assert_eq!(0, poll.answers[0].votes);
 
@@ -182,7 +184,11 @@ mod tests {
     #[test]
     fn test_add_vote_unexistant_answer() {
         let mut poll = PollInstance::new();
-        poll.answers = vec![PollInstanceAnswer{discord_answer_id: 0, answer: String::new(), votes: 0}];
+        poll.answers = vec![PollInstanceAnswer {
+            discord_answer_id: 0,
+            answer: String::new(),
+            votes: 0,
+        }];
 
         let result = poll.add_vote(2);
         assert_eq!(true, result.is_err())
@@ -192,10 +198,21 @@ mod tests {
     fn test_add_vote_twice() {
         let mut poll = PollInstance::new();
         poll.answers = vec![
-            PollInstanceAnswer{discord_answer_id: 0, answer: String::new(), votes: 0},
-            PollInstanceAnswer{discord_answer_id: 1, answer: String::new(), votes: 0},
-            PollInstanceAnswer{discord_answer_id: 2, answer: String::new(), votes: 0},
-
+            PollInstanceAnswer {
+                discord_answer_id: 0,
+                answer: String::new(),
+                votes: 0,
+            },
+            PollInstanceAnswer {
+                discord_answer_id: 1,
+                answer: String::new(),
+                votes: 0,
+            },
+            PollInstanceAnswer {
+                discord_answer_id: 2,
+                answer: String::new(),
+                votes: 0,
+            },
         ];
         let result = poll.add_vote(2);
         assert_eq!(false, result.is_err());

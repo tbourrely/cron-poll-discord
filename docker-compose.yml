@@ -4,6 +4,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
     profiles: [dev, production]
@@ -19,9 +21,7 @@ services:
     restart: always
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DATABASE: /${DATABASE}
-    volumes:
-      - ${DATABASE}:/${DATABASE}
+      DATABASE_URL: ${DATABASE_URL}
     build:
       context: .
       dockerfile: Dockerfile
@@ -34,11 +34,9 @@ services:
     restart: always
     depends_on:
       - api
-    volumes:
-      - ${DATABASE}:/${DATABASE}
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DATABASE: /${DATABASE}
+      DATABASE_URL: ${DATABASE_URL}
     build:
       context: .
       dockerfile: Dockerfile
@@ -49,11 +47,9 @@ services:
     restart: always
     depends_on:
       - api
-    volumes:
-      - ${DATABASE}:/${DATABASE}
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DATABASE: /${DATABASE}
+      DATABASE_URL: ${DATABASE_URL}
     build:
       context: .
       dockerfile: Dockerfile
