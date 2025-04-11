@@ -1,21 +1,8 @@
-use lazy_static::lazy_static;
-use rusqlite_migration::Migrations;
-use include_dir::{include_dir, Dir};
-use rusqlite::Connection;
+use sqlx::postgres::{PgPool, PgPoolOptions};
 
-static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
+pub async fn init_db(url: &str) -> Result<PgPool, Box<dyn std::error::Error>> {
+    let pool = PgPoolOptions::new().max_connections(5).connect(url).await?;
+    sqlx::migrate!().run(&pool).await?;
 
-// Define migrations. These are applied atomically.
-lazy_static! {
-    static ref MIGRATIONS: Migrations<'static> =
-        Migrations::from_directory(&MIGRATIONS_DIR).unwrap();
-}
-
-pub fn init_db(path: &str) -> Result<Connection, Box<dyn std::error::Error>> {
-    let mut conn = Connection::open(path)?;
-
-    // Update the database schema, atomically
-    MIGRATIONS.to_latest(&mut conn)?;
-
-    Ok(conn)
+    Ok(pool)
 }

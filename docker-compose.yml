@@ -1,40 +1,60 @@
 services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    profiles: [dev, production]
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    profiles: [dev]
+
   api:
     restart: always
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DATABASE: /${DATABASE}
-    volumes:
-      - ${DATABASE}:/${DATABASE}
+      DATABASE_URL: ${DATABASE_URL}
     build:
       context: .
       dockerfile: Dockerfile
       target: api
     ports:
       - 3000:3000
+    profiles: [production]
+
   bot:
     restart: always
     depends_on:
       - api
-    volumes:
-      - ${DATABASE}:/${DATABASE}
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DATABASE: /${DATABASE}
+      DATABASE_URL: ${DATABASE_URL}
     build:
       context: .
       dockerfile: Dockerfile
       target: bot
+    profiles: [production]
+
   sender:
     restart: always
     depends_on:
       - api
-    volumes:
-      - ${DATABASE}:/${DATABASE}
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
-      DATABASE: /${DATABASE}
+      DATABASE_URL: ${DATABASE_URL}
     build:
       context: .
       dockerfile: Dockerfile
       target: sender
+    profiles: [production]
+
+volumes:
+  pgdata:

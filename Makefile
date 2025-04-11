@@ -10,9 +10,9 @@ run-api:
 test:
 	cargo test
 
-delete-db:
-	rm -f polls.sqlite
+dev-start:
+	docker compose --profile dev up
 
 integration-tests:
 	rm -f venom.*
-	venom run venom/
+	venom run --stop-on-failure venom/
