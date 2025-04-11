@@ -6,10 +6,16 @@ Create *.env* file with :
 
 ```
 DISCORD_TOKEN=<discord bot token>
-DATABASE_URL=<sqlite filename>
+DATABASE_URL=<pg connection url>
 ```
 
-Run :
+Start dev environment:
+
+```
+make dev-start
+```
+
+Run services :
 
 ```
 # bot
