@@ -39,7 +39,8 @@ testcases:
         "multiselect": false,
         "guild": "test",
         "channel": "test",
-        "duration": 100
+        "duration": 100,
+        "onetime": false
       }
     headers:
       Content-Type: application/json
@@ -76,7 +77,8 @@ testcases:
         "multiselect": false,
         "guild": "test",
         "channel": "test",
-        "duration": 100
+        "duration": 100,
+        "onetime": false
       }
     headers:
       Content-Type: application/json

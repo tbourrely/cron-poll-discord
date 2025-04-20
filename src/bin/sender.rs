@@ -104,6 +104,8 @@ impl EventHandler for Handler {
                             })
                         }
 
+                        poll_repository.save(p.clone().sent(true)).await.unwrap();
+
                         let instance = PollInstance {
                             id: sent_details.id.get() as i64,
                             sent_at: sent_details.timestamp.unix_timestamp(),

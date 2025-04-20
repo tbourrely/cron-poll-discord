@@ -11,6 +11,7 @@ pub struct Poll {
     pub guild: String,
     pub channel: String,
     pub duration: i32,
+    pub onetime: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -22,6 +23,7 @@ pub struct CreatePoll {
     pub guild: String,
     pub channel: String,
     pub duration: i32,
+    pub onetime: bool,
 }
 
 pub type UpdatePoll = CreatePoll;
