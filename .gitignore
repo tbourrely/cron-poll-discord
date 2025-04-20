@@ -7,3 +7,4 @@ venom.*
 *.dump.json
 
 .idea
+.tmuxp.yaml
