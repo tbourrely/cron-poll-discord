@@ -5,3 +5,5 @@
 # venom files
 venom.*
 *.dump.json
+
+.idea

@@ -1,6 +1,6 @@
 use axum::{routing::get, Router};
 use cron_poll_discord::api::handlers::{
-    create_poll, delete_poll, get_poll, get_polls, update_poll,
+    create_poll, delete_poll, get_poll, get_polls, update_poll, get_answers_from_most_recent_poll,
 };
 use cron_poll_discord::migrations::init_db;
 use dotenv::dotenv;
@@ -18,8 +18,14 @@ async fn main() {
             "/polls/{id}",
             get(get_poll).delete(delete_poll).put(update_poll),
         )
+        .route(
+            "/poll_answers/most-voted-from-last-poll",
+            get(get_answers_from_most_recent_poll),
+        )
         .with_state(pool);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let port_api = env::var("PORT_API").expect("Expected PORT_API in the environment");
+    let host = "0.0.0.0:".to_owned() + port_api.as_str();
+    let listener = tokio::net::TcpListener::bind(host).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
