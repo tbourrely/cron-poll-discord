@@ -1,4 +1,5 @@
 use std::fmt;
+use serde::Serialize;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -16,7 +17,7 @@ impl fmt::Display for AnswersError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct PollInstanceAnswer {
     pub answer: String,
     pub discord_answer_id: i64,

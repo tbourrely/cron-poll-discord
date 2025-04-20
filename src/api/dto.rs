@@ -25,3 +25,8 @@ pub struct CreatePoll {
 }
 
 pub type UpdatePoll = CreatePoll;
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct AnswerPoll {
+    pub answer: String,
+}

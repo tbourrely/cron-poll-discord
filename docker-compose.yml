@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
     ports:
-      - 5432:5432
+      - ${PORT_DB}:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
     profiles: [dev, production]
@@ -22,12 +22,14 @@ services:
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       DATABASE_URL: ${DATABASE_URL}
+      PORT_DB: ${PORT_DB}
+      PORT_API: ${PORT_API}
     build:
       context: .
       dockerfile: Dockerfile
       target: api
     ports:
-      - 3000:3000
+      - ${PORT_API}:3000
     profiles: [production]
 
   bot:
