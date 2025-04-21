@@ -59,15 +59,23 @@ impl<'a> PollRepository<'a> {
     }
 
     async fn create_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
-        sqlx::query( "INSERT INTO polls (id, cron, question, multiselect, guild, channel, duration) VALUES ($1, $2, $3, $4, $5, $6, $7)")
-            .bind(p.id.to_string())
-            .bind(p.cron.clone())
-            .bind(p.question.clone())
-            .bind(p.multiselect)
-            .bind(p.guild.clone())
-            .bind(p.channel.clone())
-            .bind(p.duration)
-            .execute(self.pool).await?;
+        sqlx::query(
+            "
+INSERT INTO polls
+(id, cron, question, multiselect, guild, channel, duration, onetime, sent)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        )
+        .bind(p.id.to_string())
+        .bind(p.cron.clone())
+        .bind(p.question.clone())
+        .bind(p.multiselect)
+        .bind(p.guild.clone())
+        .bind(p.channel.clone())
+        .bind(p.duration)
+        .bind(p.onetime.clone())
+        .bind(p.sent.clone())
+        .execute(self.pool)
+        .await?;
 
         Ok(())
     }
@@ -99,15 +107,23 @@ impl<'a> PollRepository<'a> {
     }
 
     async fn update_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
-        sqlx::query("UPDATE polls SET cron = $1, question = $2, multiselect = $3, guild = $4, channel = $5, duration = $6 WHERE id = $7")
-            .bind(p.cron.clone())
-            .bind(p.question.clone())
-            .bind(p.multiselect)
-            .bind(p.guild.clone())
-            .bind(p.channel.clone())
-            .bind(p.duration)
-            .bind(p.id.to_string())
-            .execute(self.pool).await?;
+        sqlx::query(
+            "
+UPDATE polls
+SET cron = $1, question = $2, multiselect = $3, guild = $4, channel = $5, duration = $6, onetime = $7, sent = $8
+WHERE id = $9",
+        )
+        .bind(p.cron.clone())
+        .bind(p.question.clone())
+        .bind(p.multiselect)
+        .bind(p.guild.clone())
+        .bind(p.channel.clone())
+        .bind(p.duration)
+        .bind(p.onetime.clone())
+        .bind(p.sent.clone())
+        .bind(p.id.to_string())
+        .execute(self.pool)
+        .await?;
 
         Ok(())
     }
@@ -129,6 +145,8 @@ impl<'a> PollRepository<'a> {
             channel: row.try_get(5)?,
             answers: answers.iter().map(|item| item.answer.clone()).collect(),
             duration: row.try_get(6)?,
+            onetime: row.try_get(7)?,
+            sent: row.try_get(8)?,
         })
     }
 
@@ -157,6 +175,8 @@ impl<'a> PollRepository<'a> {
                 channel: row.try_get(5)?,
                 answers,
                 duration: row.try_get(6)?,
+                onetime: row.try_get(7)?,
+                sent: row.try_get(8)?,
             });
         }
 
@@ -187,10 +207,13 @@ impl<'a> PollRepository<'a> {
         Ok(())
     }
 
-    pub async fn get_most_voted_answer_from_latest_poll(&self) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
+    pub async fn get_most_voted_answer_from_latest_poll(
+        &self,
+    ) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
         let mut poll_instance_answers: Vec<PollInstanceAnswer> = Vec::new();
 
-        let mut rows = sqlx::query("
+        let mut rows = sqlx::query(
+            "
             SELECT votes, answer, id
             FROM poll_instance_answers
                 WHERE votes = (SELECT max(votes) FROM poll_instance_answers)
@@ -200,13 +223,15 @@ impl<'a> PollRepository<'a> {
                         ORDER BY poll_instances.sent_at DESC
                     LIMIT (1)
                   )
-        ").fetch(self.pool);
+        ",
+        )
+        .fetch(self.pool);
 
         while let Some(row) = rows.try_next().await? {
             poll_instance_answers.push(PollInstanceAnswer {
                 votes: row.try_get(0)?,
                 answer: row.try_get(1)?,
-                discord_answer_id: row.try_get(2)?
+                discord_answer_id: row.try_get(2)?,
             });
         }
 

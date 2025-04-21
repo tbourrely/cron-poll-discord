@@ -1,5 +1,5 @@
-use std::fmt;
 use serde::Serialize;
+use std::fmt;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -17,14 +17,14 @@ impl fmt::Display for AnswersError {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct PollInstanceAnswer {
     pub answer: String,
     pub discord_answer_id: i64,
     pub votes: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PollInstance {
     pub id: i64,
     pub sent_at: i64,
@@ -32,7 +32,7 @@ pub struct PollInstance {
     pub poll: Poll,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Poll {
     pub cron: String,
     pub id: Uuid,
@@ -42,6 +42,8 @@ pub struct Poll {
     pub guild: String,
     pub channel: String,
     pub duration: i32,
+    pub onetime: bool,
+    pub sent: bool,
 }
 
 impl Poll {
@@ -55,6 +57,8 @@ impl Poll {
             guild: "".to_string(),
             channel: "".to_string(),
             duration: 0,
+            onetime: false,
+            sent: false,
         }
     }
 
@@ -97,15 +101,25 @@ impl Poll {
         self.duration = duration;
         return self;
     }
+
+    pub fn onetime(mut self, onetime: bool) -> Self {
+        self.onetime = onetime;
+        return self;
+    }
+
+    pub fn sent(mut self, sent: bool) -> Self {
+        self.sent = sent;
+        return self;
+    }
 }
 
 impl PollInstance {
-    pub fn new() -> PollInstance {
+    pub fn new(p: Poll) -> PollInstance {
         PollInstance {
             id: 0,
             sent_at: 0,
             answers: vec![],
-            poll: Poll::new(),
+            poll: p,
         }
     }
 
@@ -161,7 +175,8 @@ mod tests {
 
     #[test]
     fn test_add_vote() {
-        let mut poll = PollInstance::new();
+        let p = Poll::new();
+        let mut poll = PollInstance::new(p);
         poll.answers = vec![PollInstanceAnswer {
             discord_answer_id: 0,
             answer: String::new(),
@@ -177,14 +192,16 @@ mod tests {
 
     #[test]
     fn test_add_vote_no_answers() {
-        let mut poll = PollInstance::new();
+        let p = Poll::new();
+        let mut poll = PollInstance::new(p);
         let result = poll.add_vote(0);
         assert_eq!(true, result.is_err())
     }
 
     #[test]
     fn test_add_vote_unexistant_answer() {
-        let mut poll = PollInstance::new();
+        let p = Poll::new();
+        let mut poll = PollInstance::new(p);
         poll.answers = vec![PollInstanceAnswer {
             discord_answer_id: 0,
             answer: String::new(),
@@ -197,7 +214,8 @@ mod tests {
 
     #[test]
     fn test_add_vote_twice() {
-        let mut poll = PollInstance::new();
+        let p = Poll::new();
+        let mut poll = PollInstance::new(p);
         poll.answers = vec![
             PollInstanceAnswer {
                 discord_answer_id: 0,

@@ -1,5 +1,5 @@
 use crate::api::dto::{AnswerPoll, CreatePoll, Poll, UpdatePoll};
-use crate::poll::domain::{Poll as DomainPoll};
+use crate::poll::domain::Poll as DomainPoll;
 use crate::poll::repository::PollRepository;
 use axum::{extract::Path, extract::State, http::StatusCode, response::IntoResponse, Json};
 use sqlx::PgPool;
@@ -30,7 +30,8 @@ pub async fn create_poll(
         .multiselect(payload.multiselect)
         .guild(payload.guild)
         .channel(payload.channel)
-        .duration(payload.duration);
+        .duration(payload.duration)
+        .onetime(payload.onetime);
 
     println!("poll : {:?}", poll);
     let repo = init_repo(&pool);
@@ -62,6 +63,7 @@ pub async fn get_polls(State(pool): State<PgPool>) -> Result<Json<Vec<Poll>>, St
             guild: p.guild,
             channel: p.channel,
             duration: p.duration,
+            onetime: p.onetime,
         });
     }
 
@@ -86,6 +88,7 @@ pub async fn get_poll(
         guild: poll.guild,
         channel: poll.channel,
         duration: poll.duration,
+        onetime: poll.onetime,
     }))
 }
 
@@ -112,7 +115,8 @@ pub async fn update_poll(
         .multiselect(payload.multiselect)
         .guild(payload.guild)
         .channel(payload.channel)
-        .duration(payload.duration);
+        .duration(payload.duration)
+        .onetime(payload.onetime);
 
     println!("poll : {:?}", poll);
 
@@ -123,19 +127,20 @@ pub async fn update_poll(
 }
 
 pub async fn get_answers_from_most_recent_poll(
-    State(pool): State<PgPool>
+    State(pool): State<PgPool>,
 ) -> Result<Json<Vec<AnswerPoll>>, StatusCode> {
-    let poll_instance_answers = init_repo(&pool).get_most_voted_answer_from_latest_poll().await.unwrap_or_else(|e| {
-        eprintln!("failed to read file: {e}");
-        Vec::new()
-    });
+    let poll_instance_answers = init_repo(&pool)
+        .get_most_voted_answer_from_latest_poll()
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("failed to read file: {e}");
+            Vec::new()
+        });
 
     let mut answers: Vec<AnswerPoll> = Vec::new();
 
     for p in poll_instance_answers {
-        answers.push(AnswerPoll {
-            answer: p.answer,
-        });
+        answers.push(AnswerPoll { answer: p.answer });
     }
 
     Ok(Json(answers))
