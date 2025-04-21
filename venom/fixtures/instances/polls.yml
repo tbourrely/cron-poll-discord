@@ -1,0 +1,9 @@
+- id: 1ff4f04d-b820-4f77-a81b-83232a4a3477
+  cron: "* * * * *"
+  question: "a question"
+  multiselect: false
+  guild: "some guild"
+  channel: "some channel"
+  duration: 30
+  onetime: false
+  sent: false

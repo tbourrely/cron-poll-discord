@@ -274,6 +274,29 @@ impl<'a> PollInstanceRepository<'a> {
         Ok(instance)
     }
 
+    pub async fn find_by_poll(&self, id: Uuid) -> Result<Vec<PollInstance>, Box<dyn Error>> {
+        let poll = self.poll_repository.find_by_id(id).await?;
+
+        let mut rows = sqlx::query("SELECT * FROM poll_instances WHERE poll_id = $1")
+            .bind(poll.id.to_string())
+            .fetch(self.pool);
+
+        let mut instances: Vec<PollInstance> = Vec::new();
+
+        while let Some(row) = rows.try_next().await? {
+            let mut instance = PollInstance {
+                id: row.try_get(0)?,
+                sent_at: row.try_get(1)?,
+                answers: Vec::new(),
+                poll: poll.clone(),
+            };
+            instance.answers = self.find_answers(instance.id).await?;
+            instances.push(instance)
+        }
+
+        Ok(instances)
+    }
+
     async fn exists(&self, id: i64) -> bool {
         let row = sqlx::query("SELECT id FROM poll_instances WHERE id = $1")
             .bind(id)

@@ -1,0 +1,52 @@
+name: get instances
+description: get poll instances
+vars:
+  api: http://localhost:3000
+  poll_id: 1ff4f04d-b820-4f77-a81b-83232a4a3477
+
+testcases:
+- name: Clean db
+  steps:
+    - type: sql
+      driver: postgres
+      dsn: postgres://postgres:postgres@localhost/polls?sslmode=disable
+      commands:
+        - "DELETE FROM polls"
+        - "DELETE FROM answers"
+        - "DELETE FROM poll_instances"
+        - "DELETE FROM poll_instance_answers"
+
+- name: Setup fixtures
+  steps:
+    - type: dbfixtures
+      database: postgres
+      dsn: postgres://postgres:postgres@localhost/polls?sslmode=disable
+      folder: "fixtures/instances"
+
+
+- name: GET polls should not be empty
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldHaveLength 1
+
+- name: GET polls instances should not be empty
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls/{{.poll_id}}/instances"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldHaveLength 1
+
+- name: GET polls instance by id should not be empty
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls/{{.poll_id}}/instances/1"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldNotBeEmpty

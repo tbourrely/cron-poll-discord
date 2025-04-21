@@ -29,6 +29,19 @@ pub struct CreatePoll {
 pub type UpdatePoll = CreatePoll;
 
 #[derive(Deserialize, Serialize, Debug)]
+pub struct PollInstance {
+    pub id: i64,
+    pub sent_at: i64,
+    pub answers: Vec<PollInstanceAnswer>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct PollInstanceAnswer {
+    pub answer: String,
+    pub votes: i32,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 pub struct AnswerPoll {
     pub answer: String,
 }
