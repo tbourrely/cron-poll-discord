@@ -41,3 +41,12 @@ testcases:
     assertions:
     - result.statuscode ShouldEqual 200
     - result.bodyjson ShouldHaveLength 1
+
+- name: GET polls instance by id should not be empty
+  steps:
+  - type: http
+    method: GET
+    url: "{{.api}}/polls/{{.poll_id}}/instances/1"
+    assertions:
+    - result.statuscode ShouldEqual 200
+    - result.bodyjson ShouldNotBeEmpty

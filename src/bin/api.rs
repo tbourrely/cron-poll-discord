@@ -1,7 +1,7 @@
 use axum::{routing::get, Router};
 use cron_poll_discord::api::handlers::{
-    create_poll, delete_poll, get_answers_from_most_recent_poll, get_poll, get_poll_instances,
-    get_polls, update_poll,
+    create_poll, delete_poll, get_answers_from_most_recent_poll, get_poll, get_poll_instance,
+    get_poll_instances, get_polls, update_poll,
 };
 use cron_poll_discord::migrations::init_db;
 use dotenv::dotenv;
@@ -20,6 +20,7 @@ async fn main() {
             get(get_poll).delete(delete_poll).put(update_poll),
         )
         .route("/polls/{id}/instances", get(get_poll_instances))
+        .route("/polls/{id}/instances/{instance}", get(get_poll_instance))
         .route(
             "/poll_answers/most-voted-from-last-poll",
             get(get_answers_from_most_recent_poll),

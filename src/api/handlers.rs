@@ -127,6 +127,42 @@ pub async fn get_poll_instances(
     Ok(Json(results))
 }
 
+pub async fn get_poll_instance(
+    Path((id, instance)): Path<(Uuid, i64)>,
+    State(pool): State<PgPool>,
+) -> impl IntoResponse {
+    let instance_repo = PollInstanceRepository {
+        pool: &pool,
+        poll_repository: &PollRepository { pool: &pool },
+    };
+
+    let instances = match instance_repo.find_by_poll(id).await {
+        Ok(v) => v,
+        Err(e) => return Err(handle_error(e)),
+    };
+
+    for i in instances {
+        if i.id == instance {
+            return Ok(Json(PollInstance {
+                answers: i
+                    .answers
+                    .iter()
+                    .map(|a| {
+                        return PollInstanceAnswer {
+                            answer: a.answer.clone(),
+                            votes: a.votes,
+                        };
+                    })
+                    .collect(),
+                id: i.id,
+                sent_at: i.sent_at,
+            }));
+        }
+    }
+
+    Err(StatusCode::NOT_FOUND)
+}
+
 pub async fn delete_poll(Path(id): Path<Uuid>, State(pool): State<PgPool>) -> impl IntoResponse {
     match init_repo(&pool).delete_poll(id).await {
         Ok(_) => StatusCode::OK,
