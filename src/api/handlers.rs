@@ -1,6 +1,6 @@
-use crate::api::dto::{AnswerPoll, CreatePoll, Poll, UpdatePoll};
+use crate::api::dto::{AnswerPoll, CreatePoll, Poll, PollInstance, PollInstanceAnswer, UpdatePoll};
 use crate::poll::domain::Poll as DomainPoll;
-use crate::poll::repository::PollRepository;
+use crate::poll::repository::{PollInstanceRepository, PollRepository};
 use axum::{extract::Path, extract::State, http::StatusCode, response::IntoResponse, Json};
 use sqlx::PgPool;
 use std::error::Error;
@@ -90,6 +90,41 @@ pub async fn get_poll(
         duration: poll.duration,
         onetime: poll.onetime,
     }))
+}
+
+pub async fn get_poll_instances(
+    Path(id): Path<Uuid>,
+    State(pool): State<PgPool>,
+) -> Result<Json<Vec<PollInstance>>, StatusCode> {
+    let instance_repo = PollInstanceRepository {
+        pool: &pool,
+        poll_repository: &PollRepository { pool: &pool },
+    };
+
+    let instances = match instance_repo.find_by_poll(id).await {
+        Ok(v) => v,
+        Err(e) => return Err(handle_error(e)),
+    };
+
+    let mut results: Vec<PollInstance> = Vec::new();
+    for i in instances {
+        results.push(PollInstance {
+            answers: i
+                .answers
+                .iter()
+                .map(|a| {
+                    return PollInstanceAnswer {
+                        answer: a.answer.clone(),
+                        votes: a.votes,
+                    };
+                })
+                .collect(),
+            id: i.id,
+            sent_at: i.sent_at,
+        });
+    }
+
+    Ok(Json(results))
 }
 
 pub async fn delete_poll(Path(id): Path<Uuid>, State(pool): State<PgPool>) -> impl IntoResponse {
