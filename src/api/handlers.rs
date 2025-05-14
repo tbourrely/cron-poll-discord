@@ -19,7 +19,7 @@ fn init_repo(pool: &PgPool) -> PollRepository {
 pub async fn create_poll(
     State(pool): State<PgPool>,
     Json(payload): Json<CreatePoll>,
-) -> StatusCode {
+) -> impl IntoResponse {
     // TODO: input validation
     println!("payload : {:?}", payload);
 
@@ -33,6 +33,8 @@ pub async fn create_poll(
         .duration(payload.duration)
         .onetime(payload.onetime);
 
+    let poll_id = poll.id;
+
     println!("poll : {:?}", poll);
     let repo = init_repo(&pool);
     let status = match repo.save(poll).await {
@@ -40,7 +42,11 @@ pub async fn create_poll(
         Err(e) => handle_error(e),
     };
 
-    return status;
+    if status == StatusCode::INTERNAL_SERVER_ERROR {
+        return status.into_response()
+    }
+
+    (status, Json(poll_id)).into_response()
 }
 
 pub async fn get_polls(State(pool): State<PgPool>) -> Result<Json<Vec<Poll>>, StatusCode> {
