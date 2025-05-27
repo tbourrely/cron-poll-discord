@@ -40,8 +40,3 @@ pub struct PollInstanceAnswer {
     pub answer: String,
     pub votes: i32,
 }
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct AnswerPoll {
-    pub answer: String,
-}

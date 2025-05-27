@@ -1,4 +1,4 @@
-use crate::api::dto::{AnswerPoll, CreatePoll, Poll, PollInstance, PollInstanceAnswer, UpdatePoll};
+use crate::api::dto::{CreatePoll, Poll, PollInstance, PollInstanceAnswer, UpdatePoll};
 use crate::poll::domain::Poll as DomainPoll;
 use crate::poll::repository::{PollInstanceRepository, PollRepository};
 use axum::{extract::Path, extract::State, http::StatusCode, response::IntoResponse, Json};
@@ -13,6 +13,13 @@ fn handle_error(e: Box<dyn Error>) -> StatusCode {
 
 fn init_repo(pool: &PgPool) -> PollRepository {
     PollRepository { pool: &pool }
+}
+
+fn init_instance_repo<'a>(pool: &'a PgPool, poll_repository: &'a PollRepository<'a>) -> PollInstanceRepository<'a> {
+    PollInstanceRepository {
+        pool: &pool,
+        poll_repository: &poll_repository
+    }
 }
 
 // handlers
@@ -203,21 +210,26 @@ pub async fn update_poll(
     }
 }
 
-pub async fn get_answers_from_most_recent_poll(
+pub async fn get_answers_from_poll(
+    Path(id): Path<Uuid>,
     State(pool): State<PgPool>,
-) -> Result<Json<Vec<AnswerPoll>>, StatusCode> {
-    let poll_instance_answers = init_repo(&pool)
-        .get_most_voted_answer_from_latest_poll()
+) -> Result<Json<Vec<PollInstanceAnswer>>, StatusCode> {
+    let poll_instance = init_repo(&pool);
+    let poll_instance_answers = init_instance_repo(&pool, &poll_instance)
+        .find_answers_by_poll_id(id)
         .await
         .unwrap_or_else(|e| {
             eprintln!("failed to read file: {e}");
             Vec::new()
         });
 
-    let mut answers: Vec<AnswerPoll> = Vec::new();
+    let mut answers: Vec<PollInstanceAnswer> = Vec::new();
 
     for p in poll_instance_answers {
-        answers.push(AnswerPoll { answer: p.answer });
+        answers.push(PollInstanceAnswer {
+            answer: p.answer,
+            votes: p.votes,
+        });
     }
 
     Ok(Json(answers))

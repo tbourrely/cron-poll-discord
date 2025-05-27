@@ -206,37 +206,6 @@ WHERE id = $9",
 
         Ok(())
     }
-
-    pub async fn get_most_voted_answer_from_latest_poll(
-        &self,
-    ) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
-        let mut poll_instance_answers: Vec<PollInstanceAnswer> = Vec::new();
-
-        let mut rows = sqlx::query(
-            "
-            SELECT votes, answer, id
-            FROM poll_instance_answers
-                WHERE votes = (SELECT max(votes) FROM poll_instance_answers)
-                  AND instance_id IN (
-                    SELECT poll_instances.id
-                    FROM poll_instances
-                        ORDER BY poll_instances.sent_at DESC
-                    LIMIT (1)
-                  )
-        ",
-        )
-        .fetch(self.pool);
-
-        while let Some(row) = rows.try_next().await? {
-            poll_instance_answers.push(PollInstanceAnswer {
-                votes: row.try_get(0)?,
-                answer: row.try_get(1)?,
-                discord_answer_id: row.try_get(2)?,
-            });
-        }
-
-        Ok(poll_instance_answers)
-    }
 }
 
 impl<'a> PollInstanceRepository<'a> {
@@ -374,5 +343,28 @@ impl<'a> PollInstanceRepository<'a> {
         }
 
         Ok(answers)
+    }
+
+    pub async fn find_answers_by_poll_id(&self, id: Uuid) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
+        let mut poll_instance_answers: Vec<PollInstanceAnswer> = Vec::new();
+
+        let mut rows = sqlx::query("
+            SELECT votes, answer, pia.id
+            FROM poll_instances pi
+            LEFT JOIN poll_instance_answers pia ON pia.instance_id = pi.id
+            WHERE poll_id = $1
+        ")
+            .bind(id.to_string())
+            .fetch(self.pool);
+
+        while let Some(row) = rows.try_next().await? {
+            poll_instance_answers.push(PollInstanceAnswer {
+                votes: row.try_get(0)?,
+                answer: row.try_get(1)?,
+                discord_answer_id: row.try_get(2)?,
+            });
+        }
+
+        Ok(poll_instance_answers)
     }
 }
