@@ -2,7 +2,6 @@ use chrono::Local;
 use cron_poll_discord::discord::{find_guild_channel, list_guilds};
 use cron_poll_discord::poll::cron_filter;
 use cron_poll_discord::poll::domain::{PollInstance, PollInstanceAnswer};
-use cron_poll_discord::poll::repository::{PollInstanceRepository, PollRepository};
 use dotenv::dotenv;
 use serenity::async_trait;
 use serenity::builder::{CreateMessage, CreatePoll, CreatePollAnswer};
@@ -14,6 +13,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use cron_poll_discord::migrations::init_db;
+use cron_poll_discord::poll::poll_instance_use_cases::PollUseCases;
 
 struct Handler {
     is_running: AtomicBool,
@@ -41,13 +41,9 @@ impl EventHandler for Handler {
         if !self.is_running.load(Ordering::Relaxed) {
             tokio::spawn(async move {
                 loop {
-                    let poll_repository = PollRepository { pool: &pool };
-                    let poll_instance_repository = PollInstanceRepository {
-                        pool: &pool,
-                        poll_repository: &poll_repository,
-                    };
+                    let poll_use_cases = PollUseCases::new(&pool);
 
-                    let found_polls = poll_repository.get_all().await.unwrap();
+                    let found_polls = poll_use_cases.get_polls().await.unwrap();
 
                     let now = Local::now();
                     let polls = cron_filter::filter(found_polls, &now);
@@ -104,16 +100,17 @@ impl EventHandler for Handler {
                             })
                         }
 
-                        poll_repository.save(p.clone().sent(true)).await.unwrap();
+                        poll_use_cases.save_poll(p.clone().sent(true)).await.unwrap();
 
                         let instance = PollInstance {
                             id: sent_details.id.get() as i64,
                             sent_at: sent_details.timestamp.unix_timestamp(),
                             answers,
-                            poll: p,
+                            poll_uuid: None,
+                            poll: Some(p),
                         };
 
-                        poll_instance_repository.save(instance).await.unwrap();
+                        poll_use_cases.save_instance(instance).await.unwrap();
                     }
 
                     let _ = tokio::time::sleep(Duration::from_secs(1)).await;

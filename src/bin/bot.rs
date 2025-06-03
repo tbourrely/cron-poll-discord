@@ -1,5 +1,4 @@
 use cron_poll_discord::migrations::init_db;
-use cron_poll_discord::poll::repository::{PollInstanceRepository, PollRepository};
 use dotenv::dotenv;
 use serenity::async_trait;
 use serenity::model::event::{MessagePollVoteAddEvent, MessagePollVoteRemoveEvent};
@@ -7,6 +6,7 @@ use serenity::prelude::*;
 use serenity::prelude::{Context, EventHandler};
 use std::env;
 use tokio::sync::mpsc;
+use cron_poll_discord::poll::poll_instance_use_cases::PollUseCases;
 
 enum Command {
     Add { poll_id: u64, answer_id: u64 },
@@ -70,31 +70,26 @@ async fn main() {
         use Command::*;
 
         println!("starting manager...");
-        let repo = PollInstanceRepository {
-            pool: &manager_pool,
-            poll_repository: &PollRepository {
-                pool: &manager_pool,
-            },
-        };
+        let poll_use_cases = PollUseCases::new(&manager_pool);
 
         while let Some(cmd) = rx.recv().await {
             println!("[manager] new task received");
             match cmd {
                 Add { poll_id, answer_id } => {
-                    let mut poll = match repo.find(poll_id as i64).await {
+                    let mut poll = match poll_use_cases.get_poll_instance_by_id(poll_id as i64).await {
                         Ok(poll) => poll,
                         Err(error) => panic!("Could not load poll {:?}", error),
                     };
                     poll.add_vote(answer_id as i64).unwrap();
-                    repo.save(poll).await.unwrap();
+                    poll_use_cases.save_instance(poll).await.unwrap();
                 }
                 Remove { poll_id, answer_id } => {
-                    let mut poll = match repo.find(poll_id as i64).await {
+                    let mut poll = match poll_use_cases.get_poll_instance_by_id(poll_id as i64).await {
                         Ok(poll) => poll,
                         Err(error) => panic!("Could not load poll {:?}", error),
                     };
                     poll.remove_vote(answer_id as i64).unwrap();
-                    repo.save(poll).await.unwrap();
+                    poll_use_cases.save_instance(poll).await.unwrap();
                 }
             };
         }

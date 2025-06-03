@@ -29,7 +29,8 @@ pub struct PollInstance {
     pub id: i64,
     pub sent_at: i64,
     pub answers: Vec<PollInstanceAnswer>,
-    pub poll: Poll,
+    pub poll_uuid: Option<Uuid>,
+    pub poll: Option<Poll>,
 }
 
 #[derive(Debug, Clone)]
@@ -119,7 +120,8 @@ impl PollInstance {
             id: 0,
             sent_at: 0,
             answers: vec![],
-            poll: p,
+            poll_uuid: None,
+            poll: Some(p),
         }
     }
 

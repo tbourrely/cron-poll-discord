@@ -1,25 +1,14 @@
 use crate::api::dto::{CreatePoll, Poll, PollInstance, PollInstanceAnswer, UpdatePoll};
 use crate::poll::domain::Poll as DomainPoll;
-use crate::poll::repository::{PollInstanceRepository, PollRepository};
 use axum::{extract::Path, extract::State, http::StatusCode, response::IntoResponse, Json};
 use sqlx::PgPool;
 use std::error::Error;
 use uuid::Uuid;
+use crate::poll::poll_instance_use_cases::PollUseCases;
 
 fn handle_error(e: Box<dyn Error>) -> StatusCode {
     println!("{:?}", e);
     StatusCode::INTERNAL_SERVER_ERROR
-}
-
-fn init_repo(pool: &PgPool) -> PollRepository {
-    PollRepository { pool: &pool }
-}
-
-fn init_instance_repo<'a>(pool: &'a PgPool, poll_repository: &'a PollRepository<'a>) -> PollInstanceRepository<'a> {
-    PollInstanceRepository {
-        pool: &pool,
-        poll_repository: &poll_repository
-    }
 }
 
 // handlers
@@ -43,8 +32,8 @@ pub async fn create_poll(
     let poll_id = poll.id;
 
     println!("poll : {:?}", poll);
-    let repo = init_repo(&pool);
-    let status = match repo.save(poll).await {
+    let poll_use_cases = PollUseCases::new(&pool);
+    let status = match poll_use_cases.save_poll(poll).await {
         Ok(_) => StatusCode::CREATED,
         Err(e) => handle_error(e),
     };
@@ -58,13 +47,11 @@ pub async fn create_poll(
 
 pub async fn get_polls(State(pool): State<PgPool>) -> Result<Json<Vec<Poll>>, StatusCode> {
     let mut polls: Vec<Poll> = Vec::new();
-    let db_polls = match init_repo(&pool).get_all().await {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("failed to read file: {e}");
-            Vec::new()
-        }
-    };
+    let poll_use_cases = PollUseCases::new(&pool);
+    let db_polls = poll_use_cases.get_polls().await.unwrap_or_else(|e| {
+        eprintln!("failed to read file: {e}");
+        Vec::new()
+    });
 
     for p in db_polls {
         polls.push(Poll {
@@ -87,7 +74,8 @@ pub async fn get_poll(
     Path(id): Path<Uuid>,
     State(pool): State<PgPool>,
 ) -> Result<Json<Poll>, StatusCode> {
-    let poll = match init_repo(&pool).find_by_id(id).await {
+    let poll_use_cases = PollUseCases::new(&pool);
+    let poll = match poll_use_cases.get_poll_by_id(id).await {
         Ok(p) => p,
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
@@ -109,12 +97,9 @@ pub async fn get_poll_instances(
     Path(id): Path<Uuid>,
     State(pool): State<PgPool>,
 ) -> Result<Json<Vec<PollInstance>>, StatusCode> {
-    let instance_repo = PollInstanceRepository {
-        pool: &pool,
-        poll_repository: &PollRepository { pool: &pool },
-    };
+    let poll_use_cases = PollUseCases::new(&pool);
 
-    let instances = match instance_repo.find_by_poll(id).await {
+    let instances = match poll_use_cases.get_poll_instances_by_poll_id(id).await {
         Ok(v) => v,
         Err(e) => return Err(handle_error(e)),
     };
@@ -144,12 +129,9 @@ pub async fn get_poll_instance(
     Path((id, instance)): Path<(Uuid, i64)>,
     State(pool): State<PgPool>,
 ) -> impl IntoResponse {
-    let instance_repo = PollInstanceRepository {
-        pool: &pool,
-        poll_repository: &PollRepository { pool: &pool },
-    };
+    let poll_use_cases = PollUseCases::new(&pool);
 
-    let instances = match instance_repo.find_by_poll(id).await {
+    let instances = match poll_use_cases.get_poll_instances_by_poll_id(id).await {
         Ok(v) => v,
         Err(e) => return Err(handle_error(e)),
     };
@@ -177,7 +159,8 @@ pub async fn get_poll_instance(
 }
 
 pub async fn delete_poll(Path(id): Path<Uuid>, State(pool): State<PgPool>) -> impl IntoResponse {
-    match init_repo(&pool).delete_poll(id).await {
+    let poll_use_cases = PollUseCases::new(&pool);
+    match poll_use_cases.delete_poll_by_id(id).await {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
@@ -204,7 +187,8 @@ pub async fn update_poll(
 
     println!("poll : {:?}", poll);
 
-    match init_repo(&pool).save(poll).await {
+    let poll_use_cases = PollUseCases::new(&pool);
+    match poll_use_cases.save_poll(poll).await {
         Ok(_) => StatusCode::OK,
         Err(e) => handle_error(e),
     }
@@ -214,9 +198,9 @@ pub async fn get_answers_from_poll(
     Path(id): Path<Uuid>,
     State(pool): State<PgPool>,
 ) -> Result<Json<Vec<PollInstanceAnswer>>, StatusCode> {
-    let poll_instance = init_repo(&pool);
-    let poll_instance_answers = init_instance_repo(&pool, &poll_instance)
-        .find_answers_by_poll_id(id)
+    let poll_use_cases = PollUseCases::new(&pool);
+    let poll_instance_answers = poll_use_cases
+        .get_poll_instance_answers_from_poll_id(id)
         .await
         .unwrap_or_else(|e| {
             eprintln!("failed to read file: {e}");
