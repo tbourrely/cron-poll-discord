@@ -1,7 +1,7 @@
 use std::error::Error;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::poll::domain::{Poll, PollInstance, PollInstanceAnswer};
+use crate::poll::domain::{Poll, PollGroup, PollInstance, PollInstanceAnswer};
 use crate::poll::repository::{PollInstanceRepository, PollRepository};
 
 pub struct PollUseCases<'a> {
@@ -26,8 +26,43 @@ impl PollUseCases<'_> {
         Ok(polls)
     }
 
+    pub async fn get_poll_groups(&self) -> Result<Vec<PollGroup>, Box<dyn Error>> {
+        let groups = self.poll_repository.get_all_poll_groups().await?;
+        Ok(groups)
+    }
+
     pub async fn save_poll(&self, poll: Poll) ->  Result<(), Box<dyn Error>> {
         self.poll_repository.save(poll).await?;
+        Ok(())
+    }
+
+    pub async fn create_poll_group(&self, poll: Poll) ->  Result<Uuid, Box<dyn Error>> {
+        let mut poll_group = PollGroup::new(None);
+
+        for answer_chunk in poll.answers.chunks(10) {
+            poll_group.polls.push(poll.clone().answers(answer_chunk.to_vec()));
+        }
+
+        self.poll_repository.create_poll_group(&poll_group).await?;
+        for poll in poll_group.polls {
+            self.poll_repository.save(poll).await?;
+        }
+
+        Ok(poll_group.id.clone())
+    }
+
+    pub async fn update_poll_group(&self, group: PollGroup) ->  Result<(), Box<dyn Error>> {
+        let poll_group_exist =  self.poll_repository.poll_group_exists(group.id).await?;
+
+        if !poll_group_exist {
+           return Err(format!("Group {} does not exist", group.id).into());
+        }
+
+        self.poll_repository.update_poll_group(&group).await?;
+
+        for poll in group.polls {
+            self.poll_repository.save(poll).await?;
+        }
         Ok(())
     }
 
