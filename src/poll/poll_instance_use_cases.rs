@@ -40,7 +40,12 @@ impl PollUseCases<'_> {
         let mut poll_group = PollGroup::new(None);
 
         for answer_chunk in poll.answers.chunks(10) {
-            poll_group.polls.push(poll.clone().answers(answer_chunk.to_vec()));
+            poll_group.polls.push(
+                poll.clone()
+                    .id(Uuid::new_v4())
+                    .answers(answer_chunk.to_vec())
+                    .poll_group_id(Some(poll_group.id))
+            );
         }
 
         self.poll_repository.create_poll_group(&poll_group).await?;
@@ -96,6 +101,18 @@ impl PollUseCases<'_> {
     pub async fn get_poll_instance_answers_from_poll_id(&self, poll_id: Uuid) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
         let poll_instance_answers = self.poll_instance_repository.find_answers_by_poll_id(poll_id).await?;
         Ok(poll_instance_answers)
+    }
+
+    pub async fn get_poll_instance_answers_from_poll_group_id(&self, group_id: Uuid) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
+        let polls = self.poll_repository.find_polls_by_poll_group_id(group_id).await?;
+        let poll_ids: Vec<Uuid> = polls.iter().map(|p| p.id).collect();
+        let mut poll_group_poll_instance_answers: Vec<Vec<PollInstanceAnswer>> = Vec::new();
+
+        for id in poll_ids {
+            poll_group_poll_instance_answers.push(self.poll_instance_repository.find_answers_by_poll_id(id).await?);
+        }
+
+        Ok(poll_group_poll_instance_answers.into_iter().flatten().collect())
     }
 
     pub async fn save_instance(&self, instance: PollInstance) -> Result<(), Box<dyn Error>> {

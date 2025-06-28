@@ -1,8 +1,9 @@
 use crate::poll::domain::{Poll, PollGroup, PollInstance, PollInstanceAnswer};
-use futures::TryStreamExt;
+use futures::{TryStreamExt};
 use sqlx::postgres::PgPool;
 use sqlx::Row;
 use std::error::Error;
+use chrono::{NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
 pub struct PollRepository<'a> {
@@ -46,7 +47,13 @@ impl<'a> PollRepository<'a> {
     }
 
     async fn create(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
-        self.create_poll(&p).await?;
+        match self.create_poll(&p).await {
+            Ok(_) => (),
+            Err(e) => {
+                println!("{:?}", e);
+                return Err(e);
+            }
+        };
 
         for answer in &p.answers {
             self.create_answer(answer.clone(), p.id).await?;
@@ -58,11 +65,11 @@ impl<'a> PollRepository<'a> {
     pub async fn create_poll_group(&self, p: &PollGroup) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             "
-            INSERT INTO poll_group
+            INSERT INTO poll_groups
             (id)
             VALUES ($1)",
         )
-        .bind(p.id.to_string())
+        .bind(p.id)
         .execute(self.pool)
         .await?;
 
@@ -73,8 +80,8 @@ impl<'a> PollRepository<'a> {
         sqlx::query(
             "
 INSERT INTO polls
-(id, cron, question, multiselect, guild, channel, duration, onetime, sent)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+(id, cron, question, multiselect, guild, channel, duration, onetime, sent, poll_group_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind(p.id.to_string())
         .bind(p.cron.clone())
@@ -85,6 +92,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         .bind(p.duration)
         .bind(p.onetime.clone())
         .bind(p.sent.clone())
+        .bind(p.poll_group_id.clone())
         .execute(self.pool)
         .await?;
 
@@ -232,7 +240,7 @@ SET created_at = $1",
 
             groups.push(PollGroup {
                 id:  row.try_get(0)?,
-                created_at: row.try_get(1)?,
+                created_at: Some(NaiveDate::from(row.try_get::<NaiveDateTime, usize>(1)?)),
                 polls
             });
         }
@@ -240,11 +248,11 @@ SET created_at = $1",
         Ok(groups)
     }
 
-    pub async fn find_polls_by_poll_group_id(&self, id: i64) -> Result<Vec<Poll>, Box<dyn Error>> {
+    pub async fn find_polls_by_poll_group_id(&self, id: Uuid) -> Result<Vec<Poll>, Box<dyn Error>> {
         let mut polls: Vec<Poll> = Vec::new();
 
-        let mut rows = sqlx::query("SELECT * FROM polls WHERE poll_group_id = $1 LIMIT 1")
-            .bind(id.to_string())
+        let mut rows = sqlx::query("SELECT * FROM polls WHERE poll_group_id = $1")
+            .bind(id)
             .fetch(self.pool);
 
         while let Some(row) = rows.try_next().await? {

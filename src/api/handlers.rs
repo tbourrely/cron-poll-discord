@@ -59,7 +59,6 @@ pub async fn create_poll_in_poll_group(
         .duration(payload.duration)
         .onetime(payload.onetime);
 
-    println!("poll : {:?}", poll);
     let poll_use_cases = PollUseCases::new(&pool);
     let poll_group_id = match poll_use_cases.create_poll_group(poll).await {
         Ok(p) => p,
@@ -300,6 +299,31 @@ pub async fn get_answers_from_poll(
     let poll_use_cases = PollUseCases::new(&pool);
     let poll_instance_answers = poll_use_cases
         .get_poll_instance_answers_from_poll_id(id)
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("failed to read file: {e}");
+            Vec::new()
+        });
+
+    let mut answers: Vec<PollInstanceAnswer> = Vec::new();
+
+    for p in poll_instance_answers {
+        answers.push(PollInstanceAnswer {
+            answer: p.answer,
+            votes: p.votes,
+        });
+    }
+
+    Ok(Json(answers))
+}
+
+pub async fn get_answers_from_poll_group(
+    Path(id): Path<Uuid>,
+    State(pool): State<PgPool>,
+) -> Result<Json<Vec<PollInstanceAnswer>>, StatusCode> {
+    let poll_use_cases = PollUseCases::new(&pool);
+    let poll_instance_answers = poll_use_cases
+        .get_poll_instance_answers_from_poll_group_id(id)
         .await
         .unwrap_or_else(|e| {
             eprintln!("failed to read file: {e}");

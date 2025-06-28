@@ -4,5 +4,7 @@ CREATE TABLE poll_groups(
 );
 
 ALTER TABLE polls
-    ADD COLUMN poll_group_id UUID DEFAULT NULL,
-    FOREIGN KEY (poll_group_id) REFERENCES poll_groups(id) ON DELETE CASCADE;
+    ADD COLUMN poll_group_id UUID;
+
+ALTER TABLE polls
+    ADD CONSTRAINT polls_poll_group_id_fkey FOREIGN KEY (poll_group_id) REFERENCES poll_groups(id) ON DELETE CASCADE;
