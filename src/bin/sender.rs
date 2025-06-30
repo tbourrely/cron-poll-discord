@@ -56,7 +56,8 @@ impl EventHandler for Handler {
                         polls_to_lookup.push(polls)
                     }
 
-                    let flatten_polls: Vec<Poll> = polls_to_lookup.into_iter().flatten().collect();
+                    let mut flatten_polls: Vec<Poll> = polls_to_lookup.into_iter().flatten().collect();
+                    flatten_polls.retain(|x| x.sent == false);
 
                     for p in flatten_polls {
                         println!("{:?}", p);
