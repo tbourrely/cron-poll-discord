@@ -1,8 +1,9 @@
-use crate::poll::domain::{Poll, PollInstance, PollInstanceAnswer};
-use futures::TryStreamExt;
+use crate::poll::domain::{Poll, PollGroup, PollInstance, PollInstanceAnswer};
+use futures::{TryStreamExt};
 use sqlx::postgres::PgPool;
 use sqlx::Row;
 use std::error::Error;
+use chrono::{NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
 pub struct PollRepository<'a> {
@@ -19,6 +20,7 @@ pub struct AnswerRow {
 }
 
 impl<'a> PollRepository<'a> {
+
     pub async fn save(&self, p: Poll) -> Result<(), Box<dyn Error>> {
         let exists = self.poll_exists(p.id).await?;
 
@@ -45,7 +47,13 @@ impl<'a> PollRepository<'a> {
     }
 
     async fn create(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
-        self.create_poll(&p).await?;
+        match self.create_poll(&p).await {
+            Ok(_) => (),
+            Err(e) => {
+                println!("{:?}", e);
+                return Err(e);
+            }
+        };
 
         for answer in &p.answers {
             self.create_answer(answer.clone(), p.id).await?;
@@ -54,12 +62,26 @@ impl<'a> PollRepository<'a> {
         Ok(())
     }
 
+    pub async fn create_poll_group(&self, p: &PollGroup) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            "
+            INSERT INTO poll_groups
+            (id)
+            VALUES ($1)",
+        )
+        .bind(p.id)
+        .execute(self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     async fn create_poll(&self, p: &Poll) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             "
 INSERT INTO polls
-(id, cron, question, multiselect, guild, channel, duration, onetime, sent)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+(id, cron, question, multiselect, guild, channel, duration, onetime, sent, poll_group_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind(p.id.to_string())
         .bind(p.cron.clone())
@@ -70,6 +92,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         .bind(p.duration)
         .bind(p.onetime.clone())
         .bind(p.sent.clone())
+        .bind(p.poll_group_id.clone())
         .execute(self.pool)
         .await?;
 
@@ -88,6 +111,15 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     async fn poll_exists(&self, id: Uuid) -> Result<bool, Box<dyn Error>> {
         let result = sqlx::query("SELECT id FROM polls WHERE id = $1 LIMIT 1")
             .bind(id.to_string())
+            .fetch_optional(self.pool)
+            .await?;
+
+        Ok(result.is_some())
+    }
+
+    pub async fn poll_group_exists(&self, id: Uuid) -> Result<bool, Box<dyn Error>> {
+        let result = sqlx::query("SELECT id FROM poll_groups WHERE id = $1 LIMIT 1")
+            .bind(id)
             .fetch_optional(self.pool)
             .await?;
 
@@ -124,6 +156,19 @@ WHERE id = $9",
         Ok(())
     }
 
+    pub async fn update_poll_group(&self, p: &PollGroup) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            "
+UPDATE poll_groups
+SET created_at = $1",
+        )
+        .bind(p.created_at.clone().unwrap())
+        .execute(self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn find_by_id(&self, id: Uuid) -> Result<Poll, Box<dyn Error>> {
         let row = sqlx::query("SELECT * FROM polls WHERE id = $1 LIMIT 1")
             .bind(id.to_string())
@@ -143,6 +188,7 @@ WHERE id = $9",
             duration: row.try_get(6)?,
             onetime: row.try_get(7)?,
             sent: row.try_get(8)?,
+            poll_group_id: row.try_get(9)?,
         })
     }
 
@@ -173,6 +219,65 @@ WHERE id = $9",
                 duration: row.try_get(6)?,
                 onetime: row.try_get(7)?,
                 sent: row.try_get(8)?,
+                poll_group_id: row.try_get(9)?,
+            });
+        }
+
+        Ok(polls)
+    }
+
+    pub async fn get_all_poll_groups(&self) -> Result<Vec<PollGroup>, Box<dyn Error>> {
+        let mut groups: Vec<PollGroup> = Vec::new();
+
+        let mut rows = sqlx::query("SELECT * FROM poll_groups").fetch(self.pool);
+
+        while let Some(row) = rows.try_next().await? {
+            let uuid = row.try_get(0)?;
+
+            let polls = self
+                .find_polls_by_poll_group_id(uuid)
+                .await?;
+
+            groups.push(PollGroup {
+                id:  row.try_get(0)?,
+                created_at: Some(NaiveDate::from(row.try_get::<NaiveDateTime, usize>(1)?)),
+                polls
+            });
+        }
+
+        Ok(groups)
+    }
+
+    pub async fn find_polls_by_poll_group_id(&self, id: Uuid) -> Result<Vec<Poll>, Box<dyn Error>> {
+        let mut polls: Vec<Poll> = Vec::new();
+
+        let mut rows = sqlx::query("SELECT * FROM polls WHERE poll_group_id = $1")
+            .bind(id)
+            .fetch(self.pool);
+
+        while let Some(row) = rows.try_next().await? {
+            let id: String = row.try_get(0)?;
+            let parsed_uuid = Uuid::parse_str(id.as_str())?;
+
+            let answers = self
+                .find_answers(parsed_uuid)
+                .await?
+                .iter()
+                .map(|item| item.answer.clone())
+                .collect();
+
+            polls.push(Poll {
+                id: parsed_uuid,
+                cron: row.try_get(1)?,
+                question: row.try_get(2)?,
+                multiselect: row.try_get(3)?,
+                guild: row.try_get(4)?,
+                channel: row.try_get(5)?,
+                answers,
+                duration: row.try_get(6)?,
+                onetime: row.try_get(7)?,
+                sent: row.try_get(8)?,
+                poll_group_id: row.try_get(9)?,
             });
         }
 

@@ -1,7 +1,7 @@
 use chrono::Local;
 use cron_poll_discord::discord::{find_guild_channel, list_guilds};
 use cron_poll_discord::poll::cron_filter;
-use cron_poll_discord::poll::domain::{PollInstance, PollInstanceAnswer};
+use cron_poll_discord::poll::domain::{Poll, PollInstance, PollInstanceAnswer};
 use dotenv::dotenv;
 use serenity::async_trait;
 use serenity::builder::{CreateMessage, CreatePoll, CreatePollAnswer};
@@ -43,14 +43,23 @@ impl EventHandler for Handler {
                 loop {
                     let poll_use_cases = PollUseCases::new(&pool);
 
-                    let found_polls = poll_use_cases.get_polls().await.unwrap();
+                    let found_groups = poll_use_cases.get_poll_groups().await.unwrap();
 
-                    let now = Local::now();
-                    let polls = cron_filter::filter(found_polls, &now);
-                    println!("now : {:?}", now);
-                    println!("number of polls to send : {:?}", polls.len());
+                    let mut polls_to_lookup: Vec<Vec<Poll>> = Vec::new();
+                    for group in found_groups {
+                        let now = Local::now();
+                        let polls = cron_filter::filter(group.polls, &now);
 
-                    for p in polls {
+                        println!("now : {:?}", now);
+                        println!("number of polls to send : {:?}", polls.len());
+
+                        polls_to_lookup.push(polls)
+                    }
+
+                    let mut flatten_polls: Vec<Poll> = polls_to_lookup.into_iter().flatten().collect();
+                    flatten_polls.retain(|x| x.sent == false);
+
+                    for p in flatten_polls {
                         println!("{:?}", p);
 
                         let channels =
