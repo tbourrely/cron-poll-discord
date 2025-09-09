@@ -1,4 +1,4 @@
-FROM rust:1.83-slim-bullseye AS builder
+FROM rust:1.85-slim-bullseye AS builder
 RUN apt-get update && apt-get install -y sqlite3 libsqlite3-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /usr/src/cron-poll-discord
 COPY . .
