@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use serde::Serialize;
 use std::fmt;
 use uuid::Uuid;
@@ -35,38 +34,6 @@ pub struct PollInstance {
 }
 
 #[derive(Debug, Clone)]
-pub struct PollGroup {
-    pub id: Uuid,
-    pub created_at: Option<NaiveDate>,
-    pub polls: Vec<Poll>,
-}
-
-impl PollGroup {
-    pub fn new(id: Option<Uuid>) -> PollGroup {
-        let mut uuid = Uuid::new_v4();
-        if id.is_some() {
-            uuid = id.unwrap();
-        }
-
-        PollGroup {
-            id: uuid,
-            created_at: None,
-            polls: Vec::new(),
-        }
-    }
-
-    pub fn add_poll(mut self, poll: Poll) -> Self {
-        self.polls.push(poll);
-        return self;
-    }
-
-    pub fn add_polls(mut self, polls: Vec<Poll>) -> Self {
-        self.polls = polls;
-        return self;
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct Poll {
     pub cron: String,
     pub id: Uuid,
@@ -78,7 +45,6 @@ pub struct Poll {
     pub duration: i32,
     pub onetime: bool,
     pub sent: bool,
-    pub poll_group_id: Option<Uuid>,
 }
 
 impl Poll {
@@ -94,7 +60,6 @@ impl Poll {
             duration: 0,
             onetime: false,
             sent: false,
-            poll_group_id: None,
         }
     }
 
@@ -145,11 +110,6 @@ impl Poll {
 
     pub fn sent(mut self, sent: bool) -> Self {
         self.sent = sent;
-        return self;
-    }
-
-    pub fn poll_group_id(mut self, poll_group_id: Option<Uuid>) -> Self {
-        self.poll_group_id = poll_group_id;
         return self;
     }
 }

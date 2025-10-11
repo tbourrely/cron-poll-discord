@@ -1,4 +1,4 @@
-use crate::poll::domain::{Poll, PollGroup, PollInstance, PollInstanceAnswer};
+use crate::poll::domain::{Poll, PollInstance, PollInstanceAnswer};
 use crate::poll::repository::{PollInstanceRepository, PollRepository};
 use sqlx::PgPool;
 use std::error::Error;
@@ -26,49 +26,8 @@ impl PollUseCases<'_> {
         Ok(polls)
     }
 
-    pub async fn get_poll_groups(&self) -> Result<Vec<PollGroup>, Box<dyn Error>> {
-        let groups = self.poll_repository.get_all_poll_groups().await?;
-        Ok(groups)
-    }
-
-    pub async fn save_poll(&self, poll: Poll) -> Result<(), Box<dyn Error>> {
-        self.poll_repository.save(poll).await?;
-        Ok(())
-    }
-
-    pub async fn create_poll_group(&self, poll: Poll) -> Result<Uuid, Box<dyn Error>> {
-        let mut poll_group = PollGroup::new(None);
-
-        for answer_chunk in poll.answers.chunks(10) {
-            poll_group.polls.push(
-                poll.clone()
-                    .id(Uuid::new_v4())
-                    .answers(answer_chunk.to_vec())
-                    .poll_group_id(Some(poll_group.id)),
-            );
-        }
-
-        self.poll_repository.create_poll_group(&poll_group).await?;
-        for poll in poll_group.polls {
-            self.poll_repository.save(poll).await?;
-        }
-
-        Ok(poll_group.id.clone())
-    }
-
-    pub async fn update_poll_group(&self, group: PollGroup) -> Result<(), Box<dyn Error>> {
-        let poll_group_exist = self.poll_repository.poll_group_exists(group.id).await?;
-
-        if !poll_group_exist {
-            return Err(format!("Group {} does not exist", group.id).into());
-        }
-
-        self.poll_repository.update_poll_group(&group).await?;
-
-        for poll in group.polls {
-            self.poll_repository.save(poll).await?;
-        }
-        Ok(())
+    pub async fn save_poll(&self, poll: Poll) -> Result<Uuid, Box<dyn Error>> {
+        self.poll_repository.save(&poll).await
     }
 
     pub async fn delete_poll_by_id(&self, id: Uuid) -> Result<(), Box<dyn Error>> {
@@ -116,31 +75,6 @@ impl PollUseCases<'_> {
             .find_answers_by_poll_id(poll_id)
             .await?;
         Ok(poll_instance_answers)
-    }
-
-    pub async fn get_poll_instance_answers_from_poll_group_id(
-        &self,
-        group_id: Uuid,
-    ) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
-        let polls = self
-            .poll_repository
-            .find_polls_by_poll_group_id(group_id)
-            .await?;
-        let poll_ids: Vec<Uuid> = polls.iter().map(|p| p.id).collect();
-        let mut poll_group_poll_instance_answers: Vec<Vec<PollInstanceAnswer>> = Vec::new();
-
-        for id in poll_ids {
-            poll_group_poll_instance_answers.push(
-                self.poll_instance_repository
-                    .find_answers_by_poll_id(id)
-                    .await?,
-            );
-        }
-
-        Ok(poll_group_poll_instance_answers
-            .into_iter()
-            .flatten()
-            .collect())
     }
 
     pub async fn save_instance(&self, instance: PollInstance) -> Result<(), Box<dyn Error>> {

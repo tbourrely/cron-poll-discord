@@ -1,0 +1,17 @@
+- internal_id: 1
+  id: 1
+  votes: 11
+  answer: "some answer"
+  instance_id: 1
+
+- internal_id: 2
+  id: 2
+  votes: 2
+  answer: "some answer 2"
+  instance_id: 1
+
+- internal_id: 3
+  id: 3
+  votes: 3
+  answer: "some answer 3"
+  instance_id: 2
