@@ -34,7 +34,7 @@ pub type UpdatePoll = CreatePoll;
 pub struct PollGroup {
     pub id: Uuid,
     pub created_at: String,
-    pub polls: Vec<Poll>
+    pub polls: Vec<Poll>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

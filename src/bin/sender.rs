@@ -56,7 +56,8 @@ impl EventHandler for Handler {
                         polls_to_lookup.push(polls)
                     }
 
-                    let mut flatten_polls: Vec<Poll> = polls_to_lookup.into_iter().flatten().collect();
+                    let mut flatten_polls: Vec<Poll> =
+                        polls_to_lookup.into_iter().flatten().collect();
                     flatten_polls.retain(|x| x.sent == false);
 
                     for p in flatten_polls {
@@ -109,7 +110,10 @@ impl EventHandler for Handler {
                             })
                         }
 
-                        poll_use_cases.save_poll(p.clone().sent(true)).await.unwrap();
+                        poll_use_cases
+                            .save_poll(p.clone().sent(true))
+                            .await
+                            .unwrap();
 
                         let instance = PollInstance {
                             id: sent_details.id.get() as i64,

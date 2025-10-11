@@ -1,10 +1,10 @@
-use crate::api::dto::{CreatePoll, Poll, PollInstance, PollInstanceAnswer, PollGroup, UpdatePoll};
+use crate::api::dto::{CreatePoll, Poll, PollGroup, PollInstance, PollInstanceAnswer, UpdatePoll};
 use crate::poll::domain::{Poll as DomainPoll, PollGroup as DomainPollGroup};
+use crate::poll::poll_instance_use_cases::PollUseCases;
 use axum::{extract::Path, extract::State, http::StatusCode, response::IntoResponse, Json};
 use sqlx::PgPool;
 use std::error::Error;
 use uuid::Uuid;
-use crate::poll::poll_instance_use_cases::PollUseCases;
 
 fn handle_error(e: Box<dyn Error>) -> StatusCode {
     println!("{:?}", e);
@@ -39,7 +39,7 @@ pub async fn create_poll(
     };
 
     if status == StatusCode::INTERNAL_SERVER_ERROR {
-        return status.into_response()
+        return status.into_response();
     }
 
     (status, Json(poll_id)).into_response()
@@ -87,14 +87,16 @@ pub async fn get_polls(State(pool): State<PgPool>) -> Result<Json<Vec<Poll>>, St
             channel: p.channel,
             duration: p.duration,
             onetime: p.onetime,
-            poll_group_id: p.poll_group_id
+            poll_group_id: p.poll_group_id,
         });
     }
 
     Ok(Json(polls))
 }
 
-pub async fn get_poll_groups(State(pool): State<PgPool>) -> Result<Json<Vec<PollGroup>>, StatusCode> {
+pub async fn get_poll_groups(
+    State(pool): State<PgPool>,
+) -> Result<Json<Vec<PollGroup>>, StatusCode> {
     let mut groups: Vec<PollGroup> = Vec::new();
     let poll_use_cases = PollUseCases::new(&pool);
     let db_poll_groups = poll_use_cases.get_poll_groups().await.unwrap_or_else(|e| {
@@ -115,14 +117,14 @@ pub async fn get_poll_groups(State(pool): State<PgPool>) -> Result<Json<Vec<Poll
                 channel: p.channel,
                 duration: p.duration,
                 onetime: p.onetime,
-                poll_group_id: p.poll_group_id
+                poll_group_id: p.poll_group_id,
             })
         }
 
         groups.push(PollGroup {
             id: g.id,
             created_at: g.created_at.unwrap().to_string(),
-            polls
+            polls,
         });
     }
 
@@ -267,16 +269,16 @@ pub async fn update_group_poll(
     for poll in payload.polls {
         polls.push(
             DomainPoll::new()
-            .id(poll.id)
-            .cron(poll.cron)
-            .question(poll.question)
-            .answers(poll.answers)
-            .multiselect(poll.multiselect)
-            .guild(poll.guild)
-            .channel(poll.channel)
-            .duration(poll.duration)
-            .onetime(poll.onetime)
-            .poll_group_id(poll.poll_group_id)
+                .id(poll.id)
+                .cron(poll.cron)
+                .question(poll.question)
+                .answers(poll.answers)
+                .multiselect(poll.multiselect)
+                .guild(poll.guild)
+                .channel(poll.channel)
+                .duration(poll.duration)
+                .onetime(poll.onetime)
+                .poll_group_id(poll.poll_group_id),
         )
     }
 
@@ -290,7 +292,6 @@ pub async fn update_group_poll(
         Err(e) => handle_error(e),
     }
 }
-
 
 pub async fn get_answers_from_poll(
     Path(id): Path<Uuid>,

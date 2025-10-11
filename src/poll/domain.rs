@@ -1,6 +1,6 @@
+use chrono::NaiveDate;
 use serde::Serialize;
 use std::fmt;
-use chrono::{NaiveDate};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -78,7 +78,7 @@ pub struct Poll {
     pub duration: i32,
     pub onetime: bool,
     pub sent: bool,
-    pub poll_group_id: Option<Uuid>
+    pub poll_group_id: Option<Uuid>,
 }
 
 impl Poll {

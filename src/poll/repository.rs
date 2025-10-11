@@ -1,9 +1,9 @@
 use crate::poll::domain::{Poll, PollGroup, PollInstance, PollInstanceAnswer};
-use futures::{TryStreamExt};
+use chrono::{NaiveDate, NaiveDateTime};
+use futures::TryStreamExt;
 use sqlx::postgres::PgPool;
 use sqlx::Row;
 use std::error::Error;
-use chrono::{NaiveDate, NaiveDateTime};
 use uuid::Uuid;
 
 pub struct PollRepository<'a> {
@@ -20,7 +20,6 @@ pub struct AnswerRow {
 }
 
 impl<'a> PollRepository<'a> {
-
     pub async fn save(&self, p: Poll) -> Result<(), Box<dyn Error>> {
         let exists = self.poll_exists(p.id).await?;
 
@@ -127,10 +126,11 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
     }
 
     async fn find_answers(&self, id: Uuid) -> Result<Vec<AnswerRow>, Box<dyn Error>> {
-        let answers: Vec<AnswerRow> = sqlx::query_as("SELECT answer FROM answers WHERE poll_id = $1")
-            .bind(id.to_string())
-            .fetch_all(self.pool)
-            .await?;
+        let answers: Vec<AnswerRow> =
+            sqlx::query_as("SELECT answer FROM answers WHERE poll_id = $1")
+                .bind(id.to_string())
+                .fetch_all(self.pool)
+                .await?;
         Ok(answers)
     }
 
@@ -234,14 +234,12 @@ SET created_at = $1",
         while let Some(row) = rows.try_next().await? {
             let uuid = row.try_get(0)?;
 
-            let polls = self
-                .find_polls_by_poll_group_id(uuid)
-                .await?;
+            let polls = self.find_polls_by_poll_group_id(uuid).await?;
 
             groups.push(PollGroup {
-                id:  row.try_get(0)?,
+                id: row.try_get(0)?,
                 created_at: Some(NaiveDate::from(row.try_get::<NaiveDateTime, usize>(1)?)),
-                polls
+                polls,
             });
         }
 
@@ -336,7 +334,7 @@ impl<'a> PollInstanceRepository<'a> {
             sent_at: row.try_get(1)?,
             answers: Vec::new(),
             poll_uuid: Some(poll_uuid),
-            poll: None
+            poll: None,
         };
 
         Ok(instance)
@@ -443,17 +441,22 @@ impl<'a> PollInstanceRepository<'a> {
         Ok(answers)
     }
 
-    pub async fn find_answers_by_poll_id(&self, id: Uuid) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
+    pub async fn find_answers_by_poll_id(
+        &self,
+        id: Uuid,
+    ) -> Result<Vec<PollInstanceAnswer>, Box<dyn Error>> {
         let mut poll_instance_answers: Vec<PollInstanceAnswer> = Vec::new();
 
-        let mut rows = sqlx::query("
+        let mut rows = sqlx::query(
+            "
             SELECT votes, answer, pia.id
             FROM poll_instances pi
             LEFT JOIN poll_instance_answers pia ON pia.instance_id = pi.id
             WHERE poll_id = $1
-        ")
-            .bind(id.to_string())
-            .fetch(self.pool);
+        ",
+        )
+        .bind(id.to_string())
+        .fetch(self.pool);
 
         while let Some(row) = rows.try_next().await? {
             poll_instance_answers.push(PollInstanceAnswer {
