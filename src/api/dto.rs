@@ -12,7 +12,6 @@ pub struct Poll {
     pub channel: String,
     pub duration: i32,
     pub onetime: bool,
-    pub poll_group_id: Option<Uuid>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -25,17 +24,9 @@ pub struct CreatePoll {
     pub channel: String,
     pub duration: i32,
     pub onetime: bool,
-    pub poll_group_id: Option<Uuid>,
 }
 
 pub type UpdatePoll = CreatePoll;
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct PollGroup {
-    pub id: Uuid,
-    pub created_at: String,
-    pub polls: Vec<Poll>
-}
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PollInstance {

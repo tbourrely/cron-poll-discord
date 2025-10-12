@@ -1,0 +1,9 @@
+- id: 1
+  answer: "some answer"
+  poll_id: 1ff4f04d-b820-4f77-a81b-83232a4a3477
+- id: 2
+  answer: "some answer 2"
+  poll_id: 1ff4f04d-b820-4f77-a81b-83232a4a3477
+- id: 3
+  answer: "some answer 3"
+  poll_id: 1ff4f04d-b820-4f77-a81b-83232a4a3477

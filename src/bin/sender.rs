@@ -1,8 +1,10 @@
 use chrono::Local;
 use cron_poll_discord::discord::{find_guild_channel, list_guilds};
 use cron_poll_discord::poll::cron_filter;
-use cron_poll_discord::poll::domain::{Poll, PollInstance, PollInstanceAnswer};
+use cron_poll_discord::poll::domain::{Poll as DomainPoll, PollInstance, PollInstanceAnswer};
 use dotenv::dotenv;
+use serenity::all::create_poll::Ready;
+use serenity::all::{GuildChannel, Message};
 use serenity::async_trait;
 use serenity::builder::{CreateMessage, CreatePoll, CreatePollAnswer};
 use serenity::prelude::*;
@@ -29,6 +31,44 @@ fn to_createpollanswers(answers: &Vec<String>) -> Vec<CreatePollAnswer> {
     return poll_answers;
 }
 
+// create discord polls in batches of 10 answers
+fn create_discord_polls(poll: &DomainPoll) -> Vec<CreatePoll<Ready>> {
+    let mut polls: Vec<CreatePoll<Ready>> = vec![];
+
+    let poll_answers = to_createpollanswers(&poll.answers);
+
+    let batched_answers = poll_answers.chunks(10);
+    for chunk in batched_answers {
+        let mut create_poll = CreatePoll::new()
+            .question(poll.question.clone())
+            .answers(chunk.to_vec())
+            .duration(Duration::from_secs((poll.duration as u64).into()));
+
+        if poll.multiselect {
+            create_poll = create_poll.allow_multiselect();
+        }
+
+        polls.push(create_poll);
+    }
+
+    return polls;
+}
+
+async fn send_discord_polls(
+    polls: Vec<CreatePoll<Ready>>,
+    channel: &GuildChannel,
+    ctx: &Arc<Context>,
+) -> Vec<Message> {
+    let mut messages: Vec<Message> = vec![];
+
+    for p in polls {
+        let poll_msg = CreateMessage::new().poll(p);
+        messages.push(channel.send_message(&ctx, poll_msg).await.unwrap());
+    }
+
+    return messages;
+}
+
 #[async_trait]
 impl EventHandler for Handler {
     async fn cache_ready(&self, ctx: Context, ids: Vec<serenity::all::GuildId>) {
@@ -42,24 +82,12 @@ impl EventHandler for Handler {
             tokio::spawn(async move {
                 loop {
                     let poll_use_cases = PollUseCases::new(&pool);
+                    let now = Local::now();
+                    let polls =
+                        cron_filter::filter(poll_use_cases.get_polls().await.unwrap(), &now);
+                    println!("number of polls to send : {:?}", polls.len());
 
-                    let found_groups = poll_use_cases.get_poll_groups().await.unwrap();
-
-                    let mut polls_to_lookup: Vec<Vec<Poll>> = Vec::new();
-                    for group in found_groups {
-                        let now = Local::now();
-                        let polls = cron_filter::filter(group.polls, &now);
-
-                        println!("now : {:?}", now);
-                        println!("number of polls to send : {:?}", polls.len());
-
-                        polls_to_lookup.push(polls)
-                    }
-
-                    let mut flatten_polls: Vec<Poll> = polls_to_lookup.into_iter().flatten().collect();
-                    flatten_polls.retain(|x| x.sent == false);
-
-                    for p in flatten_polls {
+                    for p in polls {
                         println!("{:?}", p);
 
                         let channels =
@@ -85,41 +113,51 @@ impl EventHandler for Handler {
 
                         let channel = channels[0].clone();
 
-                        let poll_answers = to_createpollanswers(&p.answers);
+                        let polls_to_create = create_discord_polls(&p);
+                        let created_polls_messages =
+                            send_discord_polls(polls_to_create, &channel, &ctx).await;
 
-                        let mut create_poll = CreatePoll::new()
-                            .question(p.question.clone())
-                            .answers(poll_answers)
-                            .duration(Duration::from_secs((p.duration as u64).into()));
-
-                        if p.multiselect {
-                            create_poll = create_poll.allow_multiselect();
+                        if created_polls_messages.len() == 0 {
+                            eprintln!(
+                                "No poll messages created for: guild {:?} - channel {:?}",
+                                p.guild.clone(),
+                                p.channel.clone()
+                            );
+                            continue;
                         }
 
-                        let poll_msg = CreateMessage::new().poll(create_poll);
-                        let sent_details = channel.send_message(&ctx, poll_msg).await.unwrap();
-                        let sent_poll_details = sent_details.poll.unwrap();
+                        // use the timestamp of the first poll message as the sent_at timestamp for
+                        // all poll instances
+                        let timestamp = created_polls_messages[0].timestamp.unix_timestamp();
 
-                        let mut answers: Vec<PollInstanceAnswer> = vec![];
-                        for answer in sent_poll_details.answers {
-                            answers.push(PollInstanceAnswer {
-                                discord_answer_id: answer.answer_id.get() as i64,
-                                answer: answer.poll_media.text.unwrap(),
-                                votes: 0,
-                            })
+                        // create one poll instance per poll message created
+                        for poll_message in created_polls_messages {
+                            let poll = poll_message.poll.unwrap();
+                            let answers = poll
+                                .answers
+                                .into_iter()
+                                .map(|a| PollInstanceAnswer {
+                                    discord_answer_id: a.answer_id.get() as i64,
+                                    answer: a.poll_media.text.unwrap(),
+                                    votes: 0,
+                                })
+                                .collect::<Vec<PollInstanceAnswer>>();
+
+                            let instance = PollInstance {
+                                id: poll_message.id.get() as i64,
+                                sent_at: timestamp,
+                                answers,
+                                poll_uuid: None,
+                                poll: Some(p.clone()),
+                            };
+
+                            poll_use_cases.save_instance(instance).await.unwrap();
                         }
 
-                        poll_use_cases.save_poll(p.clone().sent(true)).await.unwrap();
-
-                        let instance = PollInstance {
-                            id: sent_details.id.get() as i64,
-                            sent_at: sent_details.timestamp.unix_timestamp(),
-                            answers,
-                            poll_uuid: None,
-                            poll: Some(p),
-                        };
-
-                        poll_use_cases.save_instance(instance).await.unwrap();
+                        poll_use_cases
+                            .save_poll(p.clone().sent(true))
+                            .await
+                            .unwrap();
                     }
 
                     let _ = tokio::time::sleep(Duration::from_secs(1)).await;

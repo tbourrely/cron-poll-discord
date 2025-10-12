@@ -1,6 +1,10 @@
-use serenity::all::{Guild, GuildChannel, Context, GuildId};
+use serenity::all::{Context, Guild, GuildChannel, GuildId};
 
-pub fn find_guild_channel(guilds: Vec<Guild>, guild_name: String, channel_name: String) -> Vec<GuildChannel> {
+pub fn find_guild_channel(
+    guilds: Vec<Guild>,
+    guild_name: String,
+    channel_name: String,
+) -> Vec<GuildChannel> {
     let mut result: Vec<GuildChannel> = Vec::new();
 
     for guild in guilds {
@@ -52,34 +56,29 @@ mod tests {
 
     #[test]
     fn empty_guilds() {
-        let guilds: Vec<Guild> = Vec::new(); 
+        let guilds: Vec<Guild> = Vec::new();
         let got = find_guild_channel(guilds, String::new(), String::new());
         assert_eq!(0, got.len())
     }
 
     #[test]
     fn matching_guild_channel() {
-        let mut guilds: Vec<Guild> = Vec::new(); 
+        let mut guilds: Vec<Guild> = Vec::new();
         let guild_name: String = "my guild".to_string();
         let channel_name: String = "my channel".to_string();
 
-        guilds.push(
-            create_guild(
-                guild_name.clone(),
-                vec![
-                    create_channel(channel_name.clone(), ChannelId::new(1)),
-                ]
-            )
-        );
+        guilds.push(create_guild(
+            guild_name.clone(),
+            vec![create_channel(channel_name.clone(), ChannelId::new(1))],
+        ));
 
-        guilds.push(
-            create_guild(
-                "test".to_string(),
-                vec![
-                    create_channel("another channel".to_string(), ChannelId::new(3)),
-                ]
-            )
-        );
+        guilds.push(create_guild(
+            "test".to_string(),
+            vec![create_channel(
+                "another channel".to_string(),
+                ChannelId::new(3),
+            )],
+        ));
 
         let got = find_guild_channel(guilds, guild_name, channel_name);
 
@@ -88,23 +87,13 @@ mod tests {
 
     #[test]
     fn non_matching_guild() {
-        let mut guilds: Vec<Guild> = Vec::new(); 
+        let mut guilds: Vec<Guild> = Vec::new();
         let guild_name: String = "my guild".to_string();
         let channel_name: String = "my channel".to_string();
 
-        guilds.push(
-            create_guild(
-                "test".to_string(),
-                vec![]
-            )
-        );
+        guilds.push(create_guild("test".to_string(), vec![]));
 
-        guilds.push(
-            create_guild(
-                "test 2".to_string(),
-                vec![]
-            )
-        );
+        guilds.push(create_guild("test 2".to_string(), vec![]));
 
         let got = find_guild_channel(guilds, guild_name, channel_name);
 
