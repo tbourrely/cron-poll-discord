@@ -1,9 +1,6 @@
 use cron_poll_discord::migrations::init_db;
 use dotenv::dotenv;
-use serenity::async_trait;
-use serenity::model::event::{MessagePollVoteAddEvent, MessagePollVoteRemoveEvent};
-use serenity::prelude::*;
-use serenity::prelude::{Context, EventHandler};
+use poise::serenity_prelude as serenity;
 use std::env;
 use tokio::sync::mpsc;
 use cron_poll_discord::poll::poll_instance_use_cases::PollUseCases;
@@ -14,27 +11,12 @@ enum Command {
 }
 
 struct Handler {
-    sender: tokio::sync::mpsc::Sender<Command>,
+    sender: mpsc::Sender<Command>,
 }
 
-#[async_trait]
-impl EventHandler for Handler {
-    async fn poll_vote_remove(&self, _: Context, msg: MessagePollVoteRemoveEvent) {
-        let msg_id = msg.message_id.get();
-        let answer_id = msg.answer_id.get();
-
-        println!("[bot] removing a vote to answer {:?}", answer_id);
-
-        self.sender
-            .send(Command::Remove {
-                poll_id: msg_id,
-                answer_id,
-            })
-            .await
-            .unwrap();
-    }
-
-    async fn poll_vote_add(&self, _: Context, msg: MessagePollVoteAddEvent) {
+#[serenity::async_trait]
+impl serenity::EventHandler for Handler {
+    async fn poll_vote_add(&self, _: serenity::Context, msg: serenity::MessagePollVoteAddEvent) {
         let msg_id = msg.message_id.get();
         let answer_id = msg.answer_id.get();
 
@@ -42,6 +24,21 @@ impl EventHandler for Handler {
 
         self.sender
             .send(Command::Add {
+                poll_id: msg_id,
+                answer_id,
+            })
+            .await
+            .unwrap();
+    }
+
+    async fn poll_vote_remove(&self, _: serenity::Context, msg: serenity::MessagePollVoteRemoveEvent) {
+        let msg_id = msg.message_id.get();
+        let answer_id = msg.answer_id.get();
+
+        println!("[bot] removing a vote to answer {:?}", answer_id);
+
+        self.sender
+            .send(Command::Remove {
                 poll_id: msg_id,
                 answer_id,
             })
@@ -59,10 +56,10 @@ async fn main() {
     // Login with a bot token from the environment
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     // Set gateway intents, which decides what events the bot will be notified about
-    let intents = GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::DIRECT_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::GUILD_MESSAGE_POLLS;
+    let intents = serenity::GatewayIntents::GUILD_MESSAGES
+        | serenity::GatewayIntents::DIRECT_MESSAGES
+        | serenity::GatewayIntents::MESSAGE_CONTENT
+        | serenity::GatewayIntents::GUILD_MESSAGE_POLLS;
 
     let (tx, mut rx) = mpsc::channel::<Command>(32);
     let manager_pool = pool.clone();
@@ -100,7 +97,7 @@ async fn main() {
         let handler = Handler { sender: tx };
 
         // Create a new instance of the Client, logging in as a bot.
-        let mut client = Client::builder(&token, intents)
+        let mut client = serenity::Client::builder(&token, intents)
             .event_handler(handler)
             .await
             .expect("Err creating client");
