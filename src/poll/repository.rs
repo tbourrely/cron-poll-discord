@@ -186,6 +186,39 @@ WHERE id = $9",
         Ok(polls)
     }
 
+    pub async fn get_unsent(&self) -> Result<Vec<Poll>, Box<dyn Error>> {
+        let mut polls: Vec<Poll> = Vec::new();
+
+        let mut rows = sqlx::query("SELECT * FROM polls WHERE sent = FALSE").fetch(self.pool);
+
+        while let Some(row) = rows.try_next().await? {
+            let id: String = row.try_get(0)?;
+            let parsed_uuid = Uuid::parse_str(id.as_str())?;
+
+            let answers = self
+                .find_answers(parsed_uuid)
+                .await?
+                .iter()
+                .map(|item| item.answer.clone())
+                .collect();
+
+            polls.push(Poll {
+                id: parsed_uuid,
+                cron: row.try_get(1)?,
+                question: row.try_get(2)?,
+                multiselect: row.try_get(3)?,
+                guild: row.try_get(4)?,
+                channel: row.try_get(5)?,
+                answers,
+                duration: row.try_get(6)?,
+                onetime: row.try_get(7)?,
+                sent: row.try_get(8)?,
+            });
+        }
+
+        Ok(polls)
+    }
+
     pub async fn delete_poll(&self, id: Uuid) -> Result<(), Box<dyn Error>> {
         let found = self.poll_exists(id).await?;
         if !found {

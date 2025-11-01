@@ -84,7 +84,7 @@ impl EventHandler for Handler {
                     let poll_use_cases = PollUseCases::new(&pool);
                     let now = Local::now();
                     let polls =
-                        cron_filter::filter(poll_use_cases.get_polls().await.unwrap(), &now);
+                        cron_filter::filter(poll_use_cases.get_unsent_polls().await.unwrap(), &now);
                     println!("number of polls to send : {:?}", polls.len());
 
                     for p in polls {

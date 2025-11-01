@@ -26,6 +26,11 @@ impl PollUseCases<'_> {
         Ok(polls)
     }
 
+    pub async fn get_unsent_polls(&self) -> Result<Vec<Poll>, Box<dyn Error>> {
+        let polls = self.poll_repository.get_unsent().await?;
+        Ok(polls)
+    }
+
     pub async fn save_poll(&self, poll: Poll) -> Result<Uuid, Box<dyn Error>> {
         self.poll_repository.save(&poll).await
     }
